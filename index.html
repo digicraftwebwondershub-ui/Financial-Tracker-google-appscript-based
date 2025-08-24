@@ -314,16 +314,16 @@
       margin-top: 5px;
     }
 
-    /* Add Button top right of section header */
-    .section-header-row {
+    /* Add Button top right of section header (BLACK) */
+    .section-header-row, .form-section-header-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 10px;
       gap: 12px;
     }
-    .add-btn-blue {
-      background: #177cff;
+    .add-btn-black {
+      background: #181818;
       color: #fff;
       font-weight: 600;
       font-size: 1rem;
@@ -337,15 +337,76 @@
       transition: background 0.2s, color 0.2s, box-shadow 0.2s;
       box-shadow: 0 2px 8px 0 rgba(23,124,255,0.07);
     }
-    .add-btn-blue i {
+    .add-btn-black i {
       font-size: 1.02rem;
     }
-    .add-btn-blue:hover {
-      background: #165ac6;
+    .add-btn-black:hover, .add-btn-black:focus {
+      background: #343a40;
       color: #fff;
       box-shadow: 0 3px 13px 0 rgba(23,124,255,0.14);
     }
 
+    /* Transaction form for Add Transaction - restored previous style */
+    .form-section {
+      background-color: var(--card-bg);
+      padding: 28px 32px 24px 32px;
+      border-radius: var(--card-radius);
+      box-shadow: 0 1.5px 8px 0 rgba(50,70,93,0.07), 0 1.5px 6px 0 rgba(0,0,0,0.04);
+      border: 1.5px solid var(--border-color);
+      margin-bottom: 32px;
+      margin-top: 0;
+      max-width: 100%;
+      min-width: 0;
+      transition: box-shadow 0.22s, border-color 0.22s, transform 0.13s;
+    }
+    .form-section:hover {
+      box-shadow: 0 10px 28px 0 rgba(50,50,93,0.13), 0 2.5px 12px 0 rgba(0,0,0,0.07);
+      border-color: #b5c8e7;
+      transform: translateY(-2px) scale(1.012);
+      z-index: 1;
+    }
+    .form-section h2 {
+      margin-bottom: 0;
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #181818;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+    }
+    @media (max-width: 700px) {
+      .form-grid { grid-template-columns: 1fr; }
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+    .form-group label {
+      font-weight: 500;
+      margin-bottom: 8px;
+      font-size: 1rem;
+      color: #232323;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      padding: 12px;
+      border: 1.5px solid var(--border-color);
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+      background: #f8fafc;
+      color: #232323;
+      transition: border 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      border: 1.5px solid var(--primary-color);
+      outline: none;
+      background: #fff;
+    }
+    .full-width {
+      grid-column: 1 / -1;
+    }
     /* Transaction history grid/cell and modern card for history */
     .modern-card {
       background: #fff;
@@ -514,7 +575,7 @@
       <div class="form-section">
         <div class="form-section-header-row">
           <h2><i class="fas fa-plus"></i> Add New Transaction</h2>
-          <button class="add-btn-blue" type="button" onclick="showAddForm('transaction')">
+          <button class="add-btn-black" type="button" onclick="showAddForm('transaction')">
             <i class="fas fa-plus"></i> Add Transaction
           </button>
         </div>
@@ -562,7 +623,7 @@
           <span style="font-weight:600;font-size:1.13rem;display:flex;align-items:center;gap:8px;">
             <i class="fas fa-credit-card"></i> Credit Card Management
           </span>
-          <button class="add-btn-blue" type="button" onclick="showAddForm('card')">
+          <button class="add-btn-black" type="button" onclick="showAddForm('card')">
             <i class="fas fa-plus"></i> Add Credit Card
           </button>
         </div>
@@ -576,7 +637,7 @@
           <span style="font-weight:600;font-size:1.13rem;display:flex;align-items:center;gap:8px;">
             <i class="fas fa-bullseye"></i> Savings Goals
           </span>
-          <button class="add-btn-blue" type="button" onclick="showAddForm('goal')">
+          <button class="add-btn-black" type="button" onclick="showAddForm('goal')">
             <i class="fas fa-plus"></i> Add Savings Goal
           </button>
         </div>
@@ -590,7 +651,7 @@
           <span style="font-weight:600;font-size:1.13rem;display:flex;align-items:center;gap:8px;">
             <i class="fas fa-bell"></i> Payment Reminders
           </span>
-          <button class="add-btn-blue" type="button" onclick="showAddForm('reminder')">
+          <button class="add-btn-black" type="button" onclick="showAddForm('reminder')">
             <i class="fas fa-plus"></i> Add Reminder
           </button>
         </div>
