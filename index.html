@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <title>Personal Finance Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #007bff;
+      --secondary-color: #f8f9fa;
+      --background-color: #f0f2f5;
+      --card-bg: #fff;
+      --text-color: #333;
+      --light-text: #6c757d;
+      --border-color: #e9ecef;
+      --success-color: #28a745;
+      --warning-color: #ffc107;
+      --danger-color: #dc3545;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--background-color);
+      margin: 0;
+      padding: 0;
+      color: var(--text-color);
+    }
+    .container {
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 0 20px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin: 0;
+    }
+    .header p {
+      color: var(--light-text);
+      margin: 5px 0 0;
+    }
+    .logo {
+      font-size: 2.5rem;
+      color: var(--primary-color);
+    }
+    .nav-bar {
+      background-color: var(--card-bg);
+      padding: 10px 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .nav-bar a {
+      text-decoration: none;
+      color: var(--light-text);
+      padding: 10px 15px;
+      border-radius: 8px;
+      transition: background-color 0.3s, color 0.3s;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nav-bar a.active {
+      background-color: var(--secondary-color);
+      color: var(--primary-color);
+    }
+    .content-section {
+      display: none;
+    }
+    .content-section.active {
+      display: block;
+    }
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .card {
+      background-color: var(--card-bg);
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      transition: transform 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .card-header .icon {
+      font-size: 1.5rem;
+      color: var(--primary-color);
+    }
+    .card-title {
+      font-weight: 500;
+      color: var(--light-text);
+      margin: 0;
+    }
+    .card h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin: 0;
+    }
+    .metric-value {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-top: 5px;
+    }
+    .metric-subtitle {
+      color: var(--light-text);
+      margin: 5px 0 0;
+    }
+    .income-card .metric-value { color: var(--success-color); }
+    .expenses-card .metric-value { color: var(--danger-color); }
+    .savings-rate-card .metric-value { color: #17a2b8; }
+    .credit-card .metric-value { color: var(--warning-color); }
+
+    .progress-bar-container {
+      background-color: var(--border-color);
+      border-radius: 50px;
+      height: 8px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      border-radius: 50px;
+      transition: width 0.4s ease-in-out;
+    }
+    .progress-bar.blue { background-color: var(--primary-color); }
+    .progress-bar.green { background-color: var(--success-color); }
+    .progress-bar.red { background-color: var(--danger-color); }
+
+    .form-section {
+      background-color: var(--card-bg);
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+    .form-group label {
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      padding: 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+    }
+    .full-width {
+      grid-column: 1 / -1;
+    }
+    .btn {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+    .btn-primary {
+      background-color: var(--primary-color);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background-color: #0056b3;
+      transform: translateY(-2px);
+    }
+    .add-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1rem;
+      padding: 10px 15px;
+      margin-top: 20px;
+    }
+    
+    .data-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .list-item {
+      background-color: var(--card-bg);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      position: relative;
+    }
+    
+    .status-badge {
+      padding: 4px 10px;
+      border-radius: 50px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #fff;
+    }
+    .status-badge.overdue { background-color: var(--danger-color); }
+    .status-badge.upcoming { background-color: var(--warning-color); }
+    .status-badge.good { background-color: var(--success-color); }
+    .status-badge.recurring { background-color: #17a2b8; }
+    
+    .card-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .card-item {
+      background-color: var(--card-bg);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .card-header-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 10px;
+    }
+    .card-header-inner h3 {
+      margin: 0;
+      font-weight: 600;
+      font-size: 1.2rem;
+    }
+    .item-actions {
+      display: flex;
+      gap: 10px;
+    }
+    .icon-btn {
+      background: none;
+      border: none;
+      font-size: 1.1rem;
+      color: var(--light-text);
+      cursor: pointer;
+      transition: color 0.3s, transform 0.3s;
+    }
+    .icon-btn:hover {
+      color: var(--primary-color);
+      transform: scale(1.1);
+    }
+    .utilization-info {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 5px;
+    }
+    .utilization-badge {
+      padding: 4px 10px;
+      border-radius: 50px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .utilization-badge.overdue { background-color: var(--danger-color); }
+    .utilization-badge.good { background-color: var(--success-color); }
+    .balance-bar {
+      height: 8px;
+      background-color: var(--border-color);
+      border-radius: 4px;
+      margin-top: 5px;
+    }
+    .balance-bar-fill {
+      height: 100%;
+      background-color: var(--primary-color);
+      border-radius: 4px;
+    }
+    .balance-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--light-text);
+      font-size: 0.9rem;
+      margin-top: 5px;
+    }
+    .card-details-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding-top: 15px;
+      border-top: 1px solid var(--border-color);
+    }
+    .card-details-grid p, .card-details-grid h4 {
+      margin: 0;
+      line-height: 1.2;
+    }
+    .card-details-grid p {
+      color: var(--light-text);
+    }
+    .card-details-grid h4 {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+    
+    @media (max-width: 992px) {
+        .card-list {
+            grid-template-columns: 1fr;
+        }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1>Personal Finance Tracker</h1>
+        <p>Track your expenses, manage your goals, and stay on top of your finances</p>
+      </div>
+      <div class="logo"><i class="fas fa-wallet"></i></div>
+    </div>
+
+    <div class="nav-bar">
+      <a href="#" class="nav-link active" data-target="dashboard"><i class="fas fa-chart-line"></i> Dashboard</a>
+      <a href="#" class="nav-link" data-target="transactions"><i class="fas fa-exchange-alt"></i> Transactions</a>
+      <a href="#" class="nav-link" data-target="cards"><i class="fas fa-credit-card"></i> Cards</a>
+      <a href="#" class="nav-link" data-target="goals"><i class="fas fa-bullseye"></i> Goals</a>
+      <a href="#" class="nav-link" data-target="reminders"><i class="fas fa-bell"></i> Reminders</a>
+    </div>
+
+    <div id="dashboard" class="content-section active">
+      <div class="dashboard-grid">
+        <div class="card income-card">
+          <div class="card-header">
+            <h4 class="card-title">Net Income</h4>
+            <i class="fas fa-arrow-up icon"></i>
+          </div>
+          <p class="metric-value" id="net-income-value">₱0.00</p>
+          <p class="metric-subtitle">This month</p>
+        </div>
+        <div class="card expenses-card">
+          <div class="card-header">
+            <h4 class="card-title">Total Expenses</h4>
+            <i class="fas fa-arrow-down icon"></i>
+          </div>
+          <p class="metric-value" id="total-expenses-value">₱0.00</p>
+          <p class="metric-subtitle">This month</p>
+        </div>
+        <div class="card savings-rate-card">
+          <div class="card-header">
+            <h4 class="card-title">Savings Rate</h4>
+            <i class="fas fa-piggy-bank icon"></i>
+          </div>
+          <p class="metric-value" id="savings-rate-value">0.0%</p>
+          <p class="metric-subtitle" id="total-saved-value">₱0.00 saved</p>
+        </div>
+        <div class="card credit-card">
+          <div class="card-header">
+            <h4 class="card-title">Credit Usage</h4>
+            <i class="fas fa-credit-card icon"></i>
+          </div>
+          <p class="metric-value" id="credit-usage-value">0.0%</p>
+          <p class="metric-subtitle" id="credit-available-value">₱0.00 available</p>
+        </div>
+      </div>
+      <div class="dashboard-grid" id="dashboard-details">
+        </div>
+    </div>
+
+    <div id="transactions" class="content-section">
+      <div class="form-section">
+        <h2>Add New Transaction</h2>
+        <form id="transaction-form">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="transaction-type">Transaction Type *</label>
+              <select id="transaction-type" name="type" required>
+                <option value="">Select type</option>
+                <option value="Income">Income</option>
+                <option value="Expense">Expense</option>
+                <option value="Savings">Savings</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="transaction-category">Category *</label>
+              <select id="transaction-category" name="category" required>
+                <option value="">Select category</option>
+                <option value="Salary">Salary</option>
+                <option value="Food">Food</option>
+                <option value="Transportation">Transportation</option>
+                <option value="Utilities">Utilities</option>
+                <option value="Rent">Rent</option>
+                <option value="Emergency Fund">Emergency Fund</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="transaction-amount">Amount (₱) *</label>
+              <input type="number" step="0.01" id="transaction-amount" name="amount" placeholder="0.00" required>
+            </div>
+            <div class="form-group">
+              <label for="transaction-date">Date *</label>
+              <input type="date" id="transaction-date" name="date" required>
+            </div>
+            <div class="form-group full-width">
+              <label for="transaction-description">Description *</label>
+              <textarea id="transaction-description" name="description" rows="3" placeholder="Enter transaction description..." required></textarea>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary add-btn">
+            <i class="fas fa-plus"></i> Add Transaction
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div id="cards" class="content-section">
+      <div class="card-header">
+        <h2>Credit Card Management</h2>
+        <button class="btn btn-primary add-btn" onclick="showAddForm('card')">
+          <i class="fas fa-plus"></i> Add Credit Card
+        </button>
+      </div>
+      <div class="card-list" id="card-list">
+        </div>
+    </div>
+
+    <div id="goals" class="content-section">
+      <h2>Savings Goals</h2>
+      <div class="data-list" id="goal-list">
+        </div>
+      <button class="btn btn-primary add-btn" onclick="showAddForm('goal')">
+        <i class="fas fa-plus"></i> Add Savings Goal
+      </button>
+    </div>
+
+    <div id="reminders" class="content-section">
+      <h2>Payment Reminders</h2>
+      <div class="data-list" id="reminder-list">
+        </div>
+      <button class="btn btn-primary add-btn" onclick="showAddForm('reminder')">
+        <i class="fas fa-plus"></i> Add Reminder
+      </button>
+    </div>
+  </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    loadPageContent();
+  });
+
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.querySelectorAll('.nav-link').forEach(nav => nav.classList.remove('active'));
+      link.classList.add('active');
+      document.querySelectorAll('.content-section').forEach(section => section.classList.remove('active'));
+      document.getElementById(link.dataset.target).classList.add('active');
+      loadPageContent();
+    });
+  });
+
+  function loadPageContent() {
+    const activeTab = document.querySelector('.nav-link.active').dataset.target;
+    if (activeTab === 'dashboard') {
+      google.script.run.withSuccessHandler(renderDashboard).getDashboardData();
+    } else if (activeTab === 'transactions') {
+      document.getElementById('transaction-date').valueAsDate = new Date();
+    } else if (activeTab === 'cards') {
+      google.script.run.withSuccessHandler(renderCreditCards).getCreditCardData();
+    } else if (activeTab === 'goals') {
+      google.script.run.withSuccessHandler(renderGoals).getGoalsData();
+    } else if (activeTab === 'reminders') {
+      google.script.run.withSuccessHandler(renderReminders).getRemindersData();
+    }
+  }
+
+  document.getElementById('transaction-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+    google.script.run.withSuccessHandler(response => {
+      alert(response.message);
+      form.reset();
+      loadPageContent();
+    }).addTransaction(data);
+  });
+
+  function renderDashboard(data) {
+    document.getElementById('net-income-value').innerText = `₱${data.netIncome.toFixed(2)}`;
+    document.getElementById('total-expenses-value').innerText = `₱${data.totalExpenses.toFixed(2)}`;
+    document.getElementById('savings-rate-value').innerText = `${data.savingsRate.toFixed(2)}%`;
+    document.getElementById('total-saved-value').innerText = `₱${(data.netIncome - data.totalExpenses).toFixed(2)} saved`;
+    document.getElementById('credit-usage-value').innerText = `${data.creditUsage}%`;
+    document.getElementById('credit-available-value').innerText = `₱${data.totalCreditAvailable.toFixed(2)} available`;
+
+    const dashboardDetails = document.getElementById('dashboard-details');
+    dashboardDetails.innerHTML = '';
+
+    if (data.creditCardSummary && data.creditCardSummary.length > 0) {
+      const cardSummaryCard = document.createElement('div');
+      cardSummaryCard.className = 'card full-width';
+      cardSummaryCard.innerHTML = `
+        <div class="card-header">
+          <h4 class="card-title">Credit Cards</h4>
+        </div>
+        ${data.creditCardSummary.map(card => `
+          <div class="list-item">
+            <h3>${card.name} <span class="status-badge" style="background-color:${card.utilization > 30 ? '#dc3545' : '#17a2b8'}">${card.utilization}% utilized</span></h3>
+            <p>Balance: ₱${card.balance.toFixed(2)}</p>
+            <div class="progress-bar-container">
+              <div class="progress-bar red" style="width: ${card.utilization}%;"></div>
+            </div>
+            <p>APR: ${card.apr}% | Due: ${card.dueDate}</p>
+          </div>
+        `).join('')}
+      `;
+      dashboardDetails.appendChild(cardSummaryCard);
+    }
+
+    if (data.goalsSummary && data.goalsSummary.length > 0) {
+      const goalSummaryCard = document.createElement('div');
+      goalSummaryCard.className = 'card full-width';
+      goalSummaryCard.innerHTML = `
+        <div class="card-header">
+          <h4 class="card-title">Savings Goals</h4>
+        </div>
+        ${data.goalsSummary.map(goal => `
+          <div class="list-item">
+            <h3>${goal.name} <span class="status-badge" style="background-color:${goal.status === 'Overdue' ? '#dc3545' : '#28a745'}">${goal.progress}%</span></h3>
+            <p>Progress: ₱${goal.saved.toFixed(2)}</p>
+            <div class="progress-bar-container">
+              <div class="progress-bar green" style="width: ${goal.progress}%;"></div>
+            </div>
+            <p>₱${goal.remaining.toFixed(2)} remaining | Target: ₱${goal.target.toFixed(2)}</p>
+            <p>Target date: ${goal.dueDate}</p>
+          </div>
+        `).join('')}
+      `;
+      dashboardDetails.appendChild(goalSummaryCard);
+    }
+  }
+
+  function renderCreditCards(cards) {
+    const cardList = document.getElementById('card-list');
+    cardList.innerHTML = '';
+    
+    // Check if there are no cards and display a message or a placeholder
+    if (cards.length === 0) {
+      cardList.innerHTML = '<p style="text-align: center; color: var(--light-text);">No credit cards added yet. Click "Add Credit Card" to get started.</p>';
+      return;
+    }
+
+    cards.forEach(card => {
+      const cardItem = document.createElement('div');
+      cardItem.className = 'card-item';
+      
+      const monthlyInterest = (card.balance * (card.apr / 100)) / 12;
+      const utilizationBadgeColor = card.utilization > 30 ? 'overdue' : 'good';
+      const statusBadgeColor = card.status === 'Overdue' ? 'overdue' : card.status === 'Upcoming' ? 'upcoming' : 'good';
+      
+      let lastPaymentHtml = '';
+      if (card.lastPayment > 0) {
+          lastPaymentHtml = `
+              <div>
+                  <p>Last Payment</p>
+                  <h4>₱${card.lastPayment.toFixed(2)}</h4>
+              </div>
+              <div>
+                  <p>Date</p>
+                  <h4>${card.lastPaymentDate}</h4>
+              </div>
+          `;
+      }
+      
+      // Adjusted card layout to match the provided image
+      cardItem.innerHTML = `
+        <div class="card-header-inner">
+          <h3>${card.name}</h3>
+          <div class="item-actions">
+            <button class="icon-btn" onclick="editCardForm(${card.row})"><i class="fas fa-edit"></i></button>
+            <button class="icon-btn" onclick="deleteCard(${card.row})"><i class="fas fa-trash-alt"></i></button>
+          </div>
+        </div>
+        <p class="utilization-info">
+          <span class="utilization-badge ${utilizationBadgeColor}">${card.utilization}% utilized</span>
+          <span class="status-badge ${statusBadgeColor}">${card.status}</span>
+        </p>
+        <p>Balance</p>
+        <h4 style="font-size: 1.5rem;">₱${card.balance.toFixed(2)}</h4>
+        <div class="progress-bar-container">
+          <div class="progress-bar blue" style="width: ${card.utilization > 100 ? 100 : card.utilization}%;"></div>
+        </div>
+        <div class="balance-info">
+          <span>Available: ₱${card.available.toFixed(2)}</span>
+          <span>Limit: ₱${card.limit.toFixed(2)}</span>
+        </div>
+        <div class="card-details-grid">
+          <div>
+            <p>APR</p>
+            <h4>${card.apr}%</h4>
+          </div>
+          <div>
+            <p>Monthly Interest</p>
+            <h4>₱${monthlyInterest.toFixed(2)}</h4>
+          </div>
+          <div>
+            <p>Minimum Payment</p>
+            <h4>₱${(card.limit * 0.05).toFixed(2)}</h4>
+          </div>
+          <div>
+            <p>Due Date</p>
+            <h4>${card.dueDate}</h4>
+          </div>
+          ${lastPaymentHtml}
+        </div>
+      `;
+      cardList.appendChild(cardItem);
+    });
+  }
+
+  function editCardForm(row) {
+    google.script.run.withSuccessHandler(cardData => {
+      const card = cardData.find(c => c.row === row);
+      if (!card) {
+        alert('Card not found.');
+        return;
+      }
+      const formHtml = `
+        <div class="form-section">
+          <h2>Edit Credit Card</h2>
+          <form id="edit-card-form">
+            <input type="hidden" name="row" value="${card.row}">
+            <div class="form-grid">
+              <div class="form-group"><label>Card Name</label><input name="cardName" value="${card.name}" required></div>
+              <div class="form-group"><label>Limit (₱)</label><input type="number" step="0.01" name="limit" value="${card.limit}" required></div>
+              <div class="form-group"><label>Balance (₱)</label><input type="number" step="0.01" name="balance" value="${card.balance}" required></div>
+              <div class="form-group"><label>APR (%)</label><input type="number" step="0.01" name="apr" value="${card.apr}" required></div>
+              <div class="form-group"><label>Last Payment (₱)</label><input type="number" step="0.01" name="lastPayment" value="${card.lastPayment || ''}"></div>
+              <div class="form-group"><label>Last Payment Date</label><input type="date" name="lastPaymentDate" value="${card.lastPaymentDate !== 'N/A' ? new Date(card.lastPaymentDate).toISOString().substring(0, 10) : ''}"></div>
+              <div class="form-group full-width"><label>Due Date</label><input type="date" name="dueDate" value="${new Date(card.dueDate).toISOString().substring(0, 10)}" required></div>
+            </div>
+            <button type="submit" class="btn btn-primary add-btn"><i class="fas fa-save"></i> Save Changes</button>
+          </form>
+        </div>
+      `;
+      document.getElementById('cards').innerHTML = formHtml;
+      document.getElementById('edit-card-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        google.script.run.withSuccessHandler(response => {
+          alert(response.message);
+          loadPageContent();
+        }).editCreditCard(data);
+      });
+    }).getCreditCardData();
+  }
+
+  function deleteCard(row) {
+    if (confirm('Are you sure you want to delete this credit card entry?')) {
+      google.script.run.withSuccessHandler(() => {
+        alert('Card deleted!');
+        loadPageContent();
+      }).deleteCreditCard(row);
+    }
+  }
+
+  function renderGoals(goals) {
+    const goalList = document.getElementById('goal-list');
+    goalList.innerHTML = '';
+    goals.forEach(goal => {
+      const goalElement = document.createElement('div');
+      goalElement.className = 'list-item';
+      goalElement.innerHTML = `
+        <h3>${goal.name} <span class="status-badge" style="background-color:${goal.status === 'Overdue' ? 'var(--danger-color)' : 'var(--success-color)'}">${goal.progressPercentage}%</span></h3>
+        <div class="progress-bar-container">
+            <div class="progress-bar green" style="width: ${goal.progressPercentage}%;"></div>
+        </div>
+        <p>Progress: ₱${goal.savedAmount.toFixed(2)}</p>
+        <p>₱${goal.remainingAmount.toFixed(2)} remaining | Target: ₱${goal.targetAmount.toFixed(2)}</p>
+        <p>Target Date: <b>${goal.targetDate}</b></p>
+        <p>Monthly Allocation: <b>₱${goal.monthlySavingsNeeded}</b></p>
+      `;
+      goalList.appendChild(goalElement);
+    });
+  }
+
+  function renderReminders(reminders) {
+    const reminderList = document.getElementById('reminder-list');
+    reminderList.innerHTML = '';
+    reminders.forEach(reminder => {
+      const reminderElement = document.createElement('div');
+      reminderElement.className = 'list-item';
+      reminderElement.innerHTML = `
+        <h3>${reminder.description}</h3>
+        <p>Due Date: <b>${reminder.dueDate}</b></p>
+        <p>Amount: <b>₱${reminder.amount.toFixed(2)}</b></p>
+        <p class="status-badge ${reminder.isOverdue ? 'overdue' : ''}">${reminder.isOverdue ? reminder.daysOverdue + ' days overdue' : ''}</p>
+        <p class="status-badge recurring">${reminder.recurring}</p>
+      `;
+      reminderList.appendChild(reminderElement);
+    });
+  }
+
+  function showAddForm(type) {
+    let formHtml = '';
+    if (type === 'card') {
+      formHtml = `
+        <div class="form-section">
+          <h2>Add New Credit Card</h2>
+          <form id="card-form">
+            <div class="form-grid">
+              <div class="form-group"><label>Card Name</label><input name="cardName" required></div>
+              <div class="form-group"><label>Limit (₱)</label><input type="number" step="0.01" name="limit" required></div>
+              <div class="form-group"><label>Balance (₱)</label><input type="number" step="0.01" name="balance" required></div>
+              <div class="form-group"><label>APR (%)</label><input type="number" step="0.01" name="apr" required></div>
+              <div class="form-group"><label>Last Payment (₱)</label><input type="number" step="0.01" name="lastPayment"></div>
+              <div class="form-group"><label>Last Payment Date</label><input type="date" name="lastPaymentDate"></div>
+              <div class="form-group full-width"><label>Due Date</label><input type="date" name="dueDate" required></div>
+            </div>
+            <button type="submit" class="btn btn-primary add-btn"><i class="fas fa-plus"></i> Add Card</button>
+          </form>
+        </div>
+      `;
+      document.getElementById('cards').innerHTML = formHtml;
+      document.getElementById('card-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        google.script.run.withSuccessHandler(response => {
+          alert(response.message);
+          loadPageContent();
+        }).addCreditCard(data);
+      });
+    } else if (type === 'goal') {
+      formHtml = `
+        <div class="form-section">
+          <h2>Add New Savings Goal</h2>
+          <form id="goal-form">
+            <div class="form-grid">
+              <div class="form-group"><label>Goal Name</label><input name="goalName" required></div>
+              <div class="form-group"><label>Target Amount (₱)</label><input type="number" step="0.01" name="targetAmount" required></div>
+              <div class="form-group"><label>Saved Amount (₱)</label><input type="number" step="0.01" name="savedAmount" required></div>
+              <div class="form-group"><label>Target Date</label><input type="date" name="targetDate" required></div>
+            </div>
+            <button type="submit" class="btn btn-primary add-btn"><i class="fas fa-plus"></i> Add Goal</button>
+          </form>
+        </div>
+      `;
+      document.getElementById('goals').innerHTML = formHtml;
+      document.getElementById('goal-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        google.script.run.withSuccessHandler(() => { alert('Goal added'); loadPageContent(); }).addSavingsGoal(Object.fromEntries(formData.entries()));
+      });
+    } else if (type === 'reminder') {
+      formHtml = `
+        <div class="form-section">
+          <h2>Add New Reminder</h2>
+          <form id="reminder-form">
+            <div class="form-grid">
+              <div class="form-group"><label>Description</label><input name="description" required></div>
+              <div class="form-group"><label>Amount (₱)</label><input type="number" step="0.01" name="amount" required></div>
+              <div class="form-group"><label>Due Date</label><input type="date" name="dueDate" required></div>
+              <div class="form-group"><label>Recurring</label><select name="recurring"><option>Yes</option><option>No</option></select></div>
+            </div>
+            <button type="submit" class="btn btn-primary add-btn"><i class="fas fa-plus"></i> Add Reminder</button>
+          </form>
+        </div>
+      `;
+      document.getElementById('reminders').innerHTML = formHtml;
+      document.getElementById('reminder-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        google.script.run.withSuccessHandler(() => { alert('Reminder added'); loadPageContent(); }).addReminder(Object.fromEntries(formData.entries()));
+      });
+    }
+  }
+</script>
+
+</body>
+</html>
