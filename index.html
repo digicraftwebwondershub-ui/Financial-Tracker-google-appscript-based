@@ -19,6 +19,8 @@
       --success-color: #28a745;
       --warning-color: #ffc107;
       --danger-color: #dc3545;
+      --hover-border: #b3c0d1;
+      --hover-shadow: 0 8px 22px 0 rgba(50, 50, 93, 0.10), 0 1.5px 4px 0 rgba(0, 0, 0, 0.06);
     }
     body {
       font-family: 'Inter', sans-serif;
@@ -183,7 +185,7 @@
     }
     .form-group input, .form-group select, .form-group textarea {
       padding: 12px;
-      border: 1px solid var(--border-color);
+      border: 1.5px solid var(--border-color);
       border-radius: 8px;
       font-family: 'Inter', sans-serif;
       font-size: 1rem;
@@ -222,17 +224,27 @@
       flex-direction: column;
       gap: 15px;
     }
-    .list-item {
+    /* Updated .list-item and .card-item for more separation and feedback */
+    .list-item, .card-item {
       background-color: var(--card-bg);
-      padding: 20px;
-      border-radius: 12px;
+      padding: 28px 28px 22px 28px;
+      margin-bottom: 14px;
+      border-radius: 14px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
       display: flex;
       flex-direction: column;
       gap: 10px;
       position: relative;
+      border: 1.5px solid var(--border-color);
+      transition: box-shadow 0.3s, border-color 0.3s, transform 0.2s;
     }
-    
+    .list-item:hover, .card-item:hover {
+      border-color: var(--hover-border);
+      box-shadow: var(--hover-shadow);
+      transform: translateY(-2px) scale(1.018);
+      z-index: 2;
+    }
+
     .status-badge {
       padding: 4px 10px;
       border-radius: 50px;
@@ -251,15 +263,6 @@
       grid-template-columns: repeat(2, 1fr);
       gap: 20px;
       margin-top: 20px;
-    }
-    .card-item {
-      background-color: var(--card-bg);
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
     }
     .card-header-inner {
       display: flex;
