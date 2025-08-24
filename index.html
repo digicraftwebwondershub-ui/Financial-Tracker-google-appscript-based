@@ -93,6 +93,10 @@
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
       transition: transform 0.2s;
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
     .card:hover {
       transform: translateY(-5px);
@@ -121,6 +125,9 @@
       font-size: 2rem;
       font-weight: 700;
       margin-top: 5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
     .metric-subtitle {
       color: var(--light-text);
@@ -130,6 +137,15 @@
     .expenses-card .metric-value { color: var(--danger-color); }
     .savings-rate-card .metric-value { color: #17a2b8; }
     .credit-card .metric-value { color: var(--warning-color); }
+
+    .trend-up {
+      color: var(--success-color);
+      font-size: 1.5rem;
+    }
+    .trend-down {
+      color: var(--danger-color);
+      font-size: 1.5rem;
+    }
 
     .progress-bar-container {
       background-color: var(--border-color);
@@ -333,7 +349,6 @@
   </style>
 </head>
 <body>
-
   <div class="container">
     <div class="header">
       <div>
@@ -351,6 +366,7 @@
       <a href="#" class="nav-link" data-target="reminders"><i class="fas fa-bell"></i> Reminders</a>
     </div>
 
+    <!-- Dashboard Section -->
     <div id="dashboard" class="content-section active">
       <div class="dashboard-grid">
         <div class="card income-card">
@@ -386,10 +402,10 @@
           <p class="metric-subtitle" id="credit-available-value">₱0.00 available</p>
         </div>
       </div>
-      <div class="dashboard-grid" id="dashboard-details">
-        </div>
+      <div class="dashboard-grid" id="dashboard-details"></div>
     </div>
 
+    <!-- Transactions Section -->
     <div id="transactions" class="content-section">
       <div class="form-section">
         <h2>Add New Transaction</h2>
@@ -414,6 +430,12 @@
                 <option value="Utilities">Utilities</option>
                 <option value="Rent">Rent</option>
                 <option value="Emergency Fund">Emergency Fund</option>
+                <option value="Groceries">Groceries</option>
+                <option value="Personal Loan">Personal Loan</option>
+                <option value="Housing Loan">Housing Loan</option>
+                <option value="Car Loan">Car Loan</option>
+                <option value="Leisure">Leisure</option>
+                <option value="Travel">Travel</option>
               </select>
             </div>
             <div class="form-group">
@@ -434,8 +456,10 @@
           </button>
         </form>
       </div>
+      <div class="data-list" id="transaction-list"></div>
     </div>
 
+    <!-- Cards Section -->
     <div id="cards" class="content-section">
       <div class="card-header">
         <h2>Credit Card Management</h2>
@@ -443,23 +467,22 @@
           <i class="fas fa-plus"></i> Add Credit Card
         </button>
       </div>
-      <div class="card-list" id="card-list">
-        </div>
+      <div class="card-list" id="card-list"></div>
     </div>
 
+    <!-- Goals Section -->
     <div id="goals" class="content-section">
       <h2>Savings Goals</h2>
-      <div class="data-list" id="goal-list">
-        </div>
+      <div class="data-list" id="goal-list"></div>
       <button class="btn btn-primary add-btn" onclick="showAddForm('goal')">
         <i class="fas fa-plus"></i> Add Savings Goal
       </button>
     </div>
 
+    <!-- Reminders Section -->
     <div id="reminders" class="content-section">
       <h2>Payment Reminders</h2>
-      <div class="data-list" id="reminder-list">
-        </div>
+      <div class="data-list" id="reminder-list"></div>
       <button class="btn btn-primary add-btn" onclick="showAddForm('reminder')">
         <i class="fas fa-plus"></i> Add Reminder
       </button>
@@ -487,6 +510,7 @@
     if (activeTab === 'dashboard') {
       google.script.run.withSuccessHandler(renderDashboard).getDashboardData();
     } else if (activeTab === 'transactions') {
+      google.script.run.withSuccessHandler(renderTransactions).getTransactions();
       document.getElementById('transaction-date').valueAsDate = new Date();
     } else if (activeTab === 'cards') {
       google.script.run.withSuccessHandler(renderCreditCards).getCreditCardData();
@@ -510,9 +534,34 @@
   });
 
   function renderDashboard(data) {
-    document.getElementById('net-income-value').innerText = `₱${data.netIncome.toFixed(2)}`;
-    document.getElementById('total-expenses-value').innerText = `₱${data.totalExpenses.toFixed(2)}`;
-    document.getElementById('savings-rate-value').innerText = `${data.savingsRate.toFixed(2)}%`;
+    // Net Income
+    const netIncome = data.netIncome;
+    const netIncomeElem = document.getElementById('net-income-value');
+    netIncomeElem.innerHTML = `
+      ₱${netIncome.toFixed(2)}
+      <span class="${netIncome >= 0 ? 'trend-up' : 'trend-down'}">
+        <i class="fas fa-arrow-${netIncome >= 0 ? 'up' : 'down'}"></i>
+      </span>
+    `;
+
+    // Total Expenses (always show down arrow)
+    const totalExpensesElem = document.getElementById('total-expenses-value');
+    totalExpensesElem.innerHTML = `
+      ₱${data.totalExpenses.toFixed(2)}
+      <span class="trend-down">
+        <i class="fas fa-arrow-down"></i>
+      </span>
+    `;
+
+    // Savings Rate (trend up if > 0)
+    const savingsRateElem = document.getElementById('savings-rate-value');
+    savingsRateElem.innerHTML = `
+      ${data.savingsRate.toFixed(2)}%
+      <span class="${data.savingsRate > 0 ? 'trend-up' : 'trend-down'}">
+        <i class="fas fa-arrow-${data.savingsRate > 0 ? 'up' : 'down'}"></i>
+      </span>
+    `;
+
     document.getElementById('total-saved-value').innerText = `₱${(data.netIncome - data.totalExpenses).toFixed(2)} saved`;
     document.getElementById('credit-usage-value').innerText = `${data.creditUsage}%`;
     document.getElementById('credit-available-value').innerText = `₱${data.totalCreditAvailable.toFixed(2)} available`;
@@ -564,24 +613,35 @@
     }
   }
 
+  function renderTransactions(transactions) {
+    const transactionList = document.getElementById('transaction-list');
+    transactionList.innerHTML = '';
+    transactions.forEach(tx => {
+      const txElem = document.createElement('div');
+      txElem.className = 'list-item';
+      txElem.innerHTML = `
+        <h3>${tx.type} - ${tx.category}</h3>
+        <p>Date: <b>${tx.date}</b></p>
+        <p>Amount: <b>₱${parseFloat(tx.amount).toFixed(2)}</b></p>
+        <p>Description: <b>${tx.description}</b></p>
+      `;
+      transactionList.appendChild(txElem);
+    });
+  }
+
   function renderCreditCards(cards) {
     const cardList = document.getElementById('card-list');
     cardList.innerHTML = '';
-    
-    // Check if there are no cards and display a message or a placeholder
     if (cards.length === 0) {
       cardList.innerHTML = '<p style="text-align: center; color: var(--light-text);">No credit cards added yet. Click "Add Credit Card" to get started.</p>';
       return;
     }
-
     cards.forEach(card => {
       const cardItem = document.createElement('div');
       cardItem.className = 'card-item';
-      
       const monthlyInterest = (card.balance * (card.apr / 100)) / 12;
       const utilizationBadgeColor = card.utilization > 30 ? 'overdue' : 'good';
       const statusBadgeColor = card.status === 'Overdue' ? 'overdue' : card.status === 'Upcoming' ? 'upcoming' : 'good';
-      
       let lastPaymentHtml = '';
       if (card.lastPayment > 0) {
           lastPaymentHtml = `
@@ -595,8 +655,6 @@
               </div>
           `;
       }
-      
-      // Adjusted card layout to match the provided image
       cardItem.innerHTML = `
         <div class="card-header-inner">
           <h3>${card.name}</h3>
@@ -801,6 +859,5 @@
     }
   }
 </script>
-
 </body>
 </html>
