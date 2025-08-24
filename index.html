@@ -153,7 +153,7 @@
       font-size: 1.3rem;
     }
 
-    /* DASHBOARD GROUPED CARDS (below summary) */
+    /* GROUPED CARDS (below summary, dashboard only) */
     .dashboard-group-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -172,6 +172,12 @@
       margin-bottom: 18px;
       transition: box-shadow 0.22s, border-color 0.22s, transform 0.13s;
       min-height: 200px;
+    }
+    .dashboard-group-card:hover {
+      box-shadow: 0 10px 28px 0 rgba(50,50,93,0.13), 0 2.5px 12px 0 rgba(0,0,0,0.07);
+      border-color: #b5c8e7;
+      transform: translateY(-2px) scale(1.012);
+      z-index: 1;
     }
     .dashboard-group-header {
       font-size: 1.15rem;
@@ -231,7 +237,7 @@
     }
     /* END DASHBOARD GROUPED */
 
-    /* ADD BUTTON */
+    /* ADD BUTTONS */
     .add-btn {
       display: flex;
       align-items: center;
@@ -263,12 +269,19 @@
       background-color: var(--card-bg);
       padding: 28px 32px 24px 32px;
       border-radius: var(--card-radius);
-      box-shadow: 0 1px 8px 0 rgba(50,70,93,0.07), 0 1.5px 6px 0 rgba(0,0,0,0.04);
+      box-shadow: 0 1.5px 8px 0 rgba(50,70,93,0.07), 0 1.5px 6px 0 rgba(0,0,0,0.04);
       border: 1.5px solid var(--border-color);
       margin-bottom: 32px;
       margin-top: 0;
       max-width: 100%;
       min-width: 0;
+      transition: box-shadow 0.22s, border-color 0.22s, transform 0.13s;
+    }
+    .form-section:hover {
+      box-shadow: 0 10px 28px 0 rgba(50,50,93,0.13), 0 2.5px 12px 0 rgba(0,0,0,0.07);
+      border-color: #b5c8e7;
+      transform: translateY(-2px) scale(1.012);
+      z-index: 1;
     }
     .form-section-header-row {
       display: flex;
@@ -330,6 +343,12 @@
       transition: box-shadow 0.22s, border-color 0.22s, transform 0.13s;
       position: relative;
     }
+    .modern-card:hover {
+      box-shadow: 0 10px 28px 0 rgba(50,50,93,0.13), 0 2.5px 12px 0 rgba(0,0,0,0.07);
+      border-color: #b5c8e7;
+      transform: translateY(-2px) scale(1.012);
+      z-index: 1;
+    }
     .modern-card-header {
       font-weight: 600;
       font-size: 1.1rem;
@@ -339,16 +358,53 @@
       gap: 8px;
       color: #181818;
     }
-    .transaction-history-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      grid-gap: 24px;
-      margin-top: 8px;
+    .modern-card-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
     }
-    @media (max-width: 900px) {
-      .transaction-history-grid {
-        grid-template-columns: 1fr;
-      }
+    .modern-card-title {
+      font-size: 1.14rem;
+      font-weight: 500;
+      color: #121212;
+    }
+    .modern-card-pill {
+      background: #181818;
+      color: #fff;
+      padding: 3px 13px 3px 13px;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      margin-left: 12px;
+    }
+    .modern-card-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 7px;
+      gap: 16px;
+      font-size: 1rem;
+      color: var(--text-color);
+    }
+    .modern-card-progress {
+      height: 7px;
+      background: #e7ebf0;
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 10px 0 6px 0;
+      width: 100%;
+    }
+    .modern-card-progress-inner {
+      background: #181818;
+      height: 100%;
+      transition: width 0.5s;
+    }
+    .modern-card-meta {
+      color: #888;
+      font-size: 0.92rem;
+      margin-top: 5px;
     }
     .modern-card .edit-btn, .modern-card .delete-btn {
       background: transparent;
@@ -369,31 +425,20 @@
       color: #dc3545;
       background: #ffeaea;
     }
+    .transaction-history-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-gap: 24px;
+      margin-top: 8px;
+    }
+    @media (max-width: 900px) {
+      .transaction-history-grid {
+        grid-template-columns: 1fr;
+      }
+    }
     .tx-type-income { color: var(--success-color);}
     .tx-type-expense { color: var(--danger-color);}
     .tx-type-savings { color: #17a2b8;}
-    .modern-card .modern-card-progress-inner {
-      background: #181818;
-    }
-    .modern-card .modern-card-pill {
-      background: #181818;
-      color: #fff;
-      padding: 3px 13px 3px 13px;
-      border-radius: 8px;
-      font-size: 0.92rem;
-      font-weight: 600;
-      letter-spacing: 0.01em;
-      margin-left: 12px;
-    }
-    .modern-card .modern-card-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 7px;
-      gap: 16px;
-      font-size: 1rem;
-      color: var(--text-color);
-    }
   </style>
 </head>
 <body>
@@ -448,15 +493,14 @@
           <p class="metric-subtitle" id="credit-available-value">₱0.00 available</p>
         </div>
       </div>
-      <!-- Grouped transaction cards (Credit Cards, Goals, etc.) -->
       <div class="dashboard-group-grid" id="dashboard-grouped-cards"></div>
     </div>
     <!-- Transactions Section -->
     <div id="transactions" class="content-section">
-      <div class="form-section" style="max-width:100%;">
+      <div class="form-section">
         <div class="form-section-header-row">
           <h2><i class="fas fa-plus"></i> Add New Transaction</h2>
-          <button class="add-btn" type="button" style="margin-top:0;" onclick="showAddForm('transaction')">
+          <button class="add-btn" type="button" onclick="showAddForm('transaction')">
             <i class="fas fa-plus"></i> Add Transaction
           </button>
         </div>
@@ -490,10 +534,7 @@
               <textarea id="transaction-description" name="description" rows="3" placeholder="Enter transaction description..." required></textarea>
             </div>
           </div>
-          <!-- This Add Transaction is inside the form for submitting -->
-          <button type="submit" class="btn btn-primary" style="margin-top: 22px;">
-            <i class="fas fa-plus"></i> Add Transaction
-          </button>
+          <!-- Only one add button, upper right, not below -->
         </form>
       </div>
       <div class="modern-card" style="margin-top:32px;">
@@ -568,6 +609,7 @@
       google.script.run.withSuccessHandler(renderReminders).getRemindersData();
     }
   }
+  // Transaction Form
   document.getElementById('transaction-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const form = e.target;
