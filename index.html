@@ -224,7 +224,6 @@
       flex-direction: column;
       gap: 15px;
     }
-    /* Updated .list-item and .card-item for more separation and feedback */
     .list-item, .card-item {
       background-color: var(--card-bg);
       padding: 28px 28px 22px 28px;
@@ -410,7 +409,7 @@
 
     <!-- Transactions Section -->
     <div id="transactions" class="content-section">
-      <div class="form-section">
+      <div class="form-section" style="margin-bottom:32px;">
         <h2>Add New Transaction</h2>
         <form id="transaction-form">
           <div class="form-grid">
@@ -427,18 +426,7 @@
               <label for="transaction-category">Category *</label>
               <select id="transaction-category" name="category" required>
                 <option value="">Select category</option>
-                <option value="Salary">Salary</option>
-                <option value="Food">Food</option>
-                <option value="Transportation">Transportation</option>
-                <option value="Utilities">Utilities</option>
-                <option value="Rent">Rent</option>
-                <option value="Emergency Fund">Emergency Fund</option>
-                <option value="Groceries">Groceries</option>
-                <option value="Personal Loan">Personal Loan</option>
-                <option value="Housing Loan">Housing Loan</option>
-                <option value="Car Loan">Car Loan</option>
-                <option value="Leisure">Leisure</option>
-                <option value="Travel">Travel</option>
+                <!-- Dynamically filled by JS -->
               </select>
             </div>
             <div class="form-group">
@@ -459,7 +447,10 @@
           </button>
         </form>
       </div>
-      <div class="data-list" id="transaction-list"></div>
+      <div class="form-section" style="margin-top:32px;">
+        <h2 style="margin-bottom:16px;">Transaction History</h2>
+        <div class="data-list" id="transaction-list"></div>
+      </div>
     </div>
 
     <!-- Cards Section -->
@@ -515,6 +506,7 @@
     } else if (activeTab === 'transactions') {
       google.script.run.withSuccessHandler(renderTransactions).getTransactions();
       document.getElementById('transaction-date').valueAsDate = new Date();
+      updateCategoryOptions(); // Set category options when tab opens
     } else if (activeTab === 'cards') {
       google.script.run.withSuccessHandler(renderCreditCards).getCreditCardData();
     } else if (activeTab === 'goals') {
@@ -532,9 +524,44 @@
     google.script.run.withSuccessHandler(response => {
       alert(response.message);
       form.reset();
+      updateCategoryOptions();
       loadPageContent();
     }).addTransaction(data);
   });
+
+  // Dynamic Category Options for Transaction Type
+  const categoryOptions = {
+    Income: [
+      "Salary", "Business", "Freelancing", "Allowance", "Bonus", "Investment", "Gifts", "Other Income"
+    ],
+    Expense: [
+      "Food", "Groceries", "Transportation", "Utilities", "Rent", "Mortgage", "Personal Loan",
+      "Housing Loan", "Car Loan", "Leisure", "Travel", "Shopping", "Entertainment", "Medical",
+      "Insurance", "Education", "Credit Card Payment", "Charity", "Miscellaneous"
+    ],
+    Savings: [
+      "Emergency Fund", "Retirement", "Vacation", "Investment Fund", "Other Savings"
+    ]
+  };
+
+  function updateCategoryOptions() {
+    const type = document.getElementById('transaction-type').value;
+    const categorySelect = document.getElementById('transaction-category');
+    categorySelect.innerHTML = '<option value="">Select category</option>';
+    if (type && categoryOptions[type]) {
+      categoryOptions[type].forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.textContent = cat;
+        categorySelect.appendChild(option);
+      });
+    }
+  }
+
+  document.getElementById('transaction-type').addEventListener('change', updateCategoryOptions);
+
+  // Optionally, call once at load to set correct options
+  updateCategoryOptions();
 
   function renderDashboard(data) {
     // Net Income
