@@ -235,104 +235,118 @@
       display: flex;
       gap: 18px;
     }
-    /* END DASHBOARD GROUPED */
 
-    /* ADD BUTTONS */
-    .add-btn {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 9px 22px 9px 18px;
-      background: #181818;
-      color: #fff;
-      font-weight: 600;
-      font-size: 1rem;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
-      margin-left: 14px;
-      box-shadow: 0 2px 8px 0 rgba(0,0,0,0.07);
-      margin-top: 0;
+    /* 2x2 Grid for Cards, Goals, Reminders section items */
+    .item-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 8px;
     }
-    .add-btn i {
-      font-size: 1.02rem;
-    }
-    .add-btn:hover {
-      background: #2863ff;
-      color: #fff;
-      box-shadow: 0 3px 13px 0 rgba(40,99,255,0.12);
+    @media (max-width: 900px) {
+      .item-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
-    /* FORMS */
-    .form-section {
-      background-color: var(--card-bg);
-      padding: 28px 32px 24px 32px;
-      border-radius: var(--card-radius);
-      box-shadow: 0 1.5px 8px 0 rgba(50,70,93,0.07), 0 1.5px 6px 0 rgba(0,0,0,0.04);
-      border: 1.5px solid var(--border-color);
-      margin-bottom: 32px;
-      margin-top: 0;
-      max-width: 100%;
+    /* Card/Goal/Reminder item card styling */
+    .item-card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 2px 16px 0 rgba(60,60,93,0.06);
+      border: 1.5px solid #e7ebf0;
+      padding: 22px 24px 18px 24px;
+      transition: box-shadow 0.2s, border-color 0.18s, transform 0.13s;
+      position: relative;
       min-width: 0;
-      transition: box-shadow 0.22s, border-color 0.22s, transform 0.13s;
     }
-    .form-section:hover {
+    .item-card:hover {
       box-shadow: 0 10px 28px 0 rgba(50,50,93,0.13), 0 2.5px 12px 0 rgba(0,0,0,0.07);
       border-color: #b5c8e7;
       transform: translateY(-2px) scale(1.012);
       z-index: 1;
     }
-    .form-section-header-row {
+    .item-card-title-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 5px;
     }
-    .form-section h2 {
-      margin-bottom: 0;
-      font-size: 1.2rem;
+    .item-card-title {
+      font-size: 1.15rem;
       font-weight: 600;
-      color: #181818;
+      color: #121212;
     }
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 22px;
+    .item-card-pill {
+      background: #181818;
+      color: #fff;
+      padding: 2px 14px;
+      border-radius: 9px;
+      font-size: 0.96rem;
+      font-weight: 600;
+      margin-left: 10px;
     }
-    @media (max-width: 700px) {
-      .form-grid { grid-template-columns: 1fr; }
-    }
-    .form-group {
+    .item-card-row {
       display: flex;
-      flex-direction: column;
-    }
-    .form-group label {
-      font-weight: 500;
-      margin-bottom: 8px;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 7px;
+      gap: 16px;
       font-size: 1rem;
-      color: #232323;
+      color: var(--text-color);
     }
-    .form-group input, .form-group select, .form-group textarea {
-      padding: 12px;
-      border: 1.5px solid var(--border-color);
+    .item-card-progress {
+      height: 7px;
+      background: #e7ebf0;
       border-radius: 8px;
-      font-family: 'Inter', sans-serif;
-      font-size: 1rem;
-      background: #f8fafc;
-      color: #232323;
-      transition: border 0.2s;
+      overflow: hidden;
+      margin: 10px 0 6px 0;
+      width: 100%;
     }
-    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-      border: 1.5px solid var(--primary-color);
-      outline: none;
-      background: #fff;
+    .item-card-progress-inner {
+      background: #181818;
+      height: 100%;
+      transition: width 0.5s;
     }
-    .full-width {
-      grid-column: 1 / -1;
+    .item-card-meta {
+      color: #888;
+      font-size: 0.97rem;
+      margin-top: 5px;
     }
 
-    /* MODERN CARD (for transaction history, cards, goals, reminders) */
+    /* Add Button top right of section header */
+    .section-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      gap: 12px;
+    }
+    .add-btn-blue {
+      background: #177cff;
+      color: #fff;
+      font-weight: 600;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 22px 9px 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+      box-shadow: 0 2px 8px 0 rgba(23,124,255,0.07);
+    }
+    .add-btn-blue i {
+      font-size: 1.02rem;
+    }
+    .add-btn-blue:hover {
+      background: #165ac6;
+      color: #fff;
+      box-shadow: 0 3px 13px 0 rgba(23,124,255,0.14);
+    }
+
+    /* Transaction history grid/cell and modern card for history */
     .modern-card {
       background: #fff;
       border-radius: var(--card-radius);
@@ -500,7 +514,7 @@
       <div class="form-section">
         <div class="form-section-header-row">
           <h2><i class="fas fa-plus"></i> Add New Transaction</h2>
-          <button class="add-btn" type="button" onclick="showAddForm('transaction')">
+          <button class="add-btn-blue" type="button" onclick="showAddForm('transaction')">
             <i class="fas fa-plus"></i> Add Transaction
           </button>
         </div>
@@ -534,7 +548,6 @@
               <textarea id="transaction-description" name="description" rows="3" placeholder="Enter transaction description..." required></textarea>
             </div>
           </div>
-          <!-- Only one add button, upper right, not below -->
         </form>
       </div>
       <div class="modern-card" style="margin-top:32px;">
@@ -545,37 +558,43 @@
     <!-- Cards Section -->
     <div id="cards" class="content-section">
       <div class="modern-card">
-        <div class="modern-card-header">
-          <span><i class="fas fa-credit-card"></i> Credit Card Management</span>
-          <button class="add-btn" type="button" onclick="showAddForm('card')">
+        <div class="section-header-row">
+          <span style="font-weight:600;font-size:1.13rem;display:flex;align-items:center;gap:8px;">
+            <i class="fas fa-credit-card"></i> Credit Card Management
+          </span>
+          <button class="add-btn-blue" type="button" onclick="showAddForm('card')">
             <i class="fas fa-plus"></i> Add Credit Card
           </button>
         </div>
-        <div class="card-list" id="card-list"></div>
+        <div class="item-grid" id="card-list"></div>
       </div>
     </div>
     <!-- Goals Section -->
     <div id="goals" class="content-section">
       <div class="modern-card">
-        <div class="modern-card-header">
-          <span><i class="fas fa-bullseye"></i> Savings Goals</span>
-          <button class="add-btn" type="button" onclick="showAddForm('goal')">
+        <div class="section-header-row">
+          <span style="font-weight:600;font-size:1.13rem;display:flex;align-items:center;gap:8px;">
+            <i class="fas fa-bullseye"></i> Savings Goals
+          </span>
+          <button class="add-btn-blue" type="button" onclick="showAddForm('goal')">
             <i class="fas fa-plus"></i> Add Savings Goal
           </button>
         </div>
-        <div class="card-list" id="goal-list"></div>
+        <div class="item-grid" id="goal-list"></div>
       </div>
     </div>
     <!-- Reminders Section -->
     <div id="reminders" class="content-section">
       <div class="modern-card">
-        <div class="modern-card-header">
-          <span><i class="fas fa-bell"></i> Payment Reminders</span>
-          <button class="add-btn" type="button" onclick="showAddForm('reminder')">
+        <div class="section-header-row">
+          <span style="font-weight:600;font-size:1.13rem;display:flex;align-items:center;gap:8px;">
+            <i class="fas fa-bell"></i> Payment Reminders
+          </span>
+          <button class="add-btn-blue" type="button" onclick="showAddForm('reminder')">
             <i class="fas fa-plus"></i> Add Reminder
           </button>
         </div>
-        <div class="card-list" id="reminder-list"></div>
+        <div class="item-grid" id="reminder-list"></div>
       </div>
     </div>
   </div>
@@ -782,22 +801,23 @@
     }
     cards.forEach(card => {
       const utilization = Math.round(card.utilization);
-      cardList.innerHTML += `
-        <div class="modern-card">
-          <div class="modern-card-title-row">
-            <span class="modern-card-title">${card.name}</span>
-            <span class="modern-card-pill">${utilization}%</span>
-          </div>
-          <div class="modern-card-row">
-            <span>Balance: ₱${card.balance.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
-            <span style="margin-left:auto;">Limit: ₱${card.limit.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
-          </div>
-          <div class="modern-card-progress">
-            <div class="modern-card-progress-inner" style="width:${utilization}%;"></div>
-          </div>
-          <div class="modern-card-meta">APR: ${card.apr}% | Due: ${card.dueDate}</div>
+      const cardDiv = document.createElement('div');
+      cardDiv.className = 'item-card';
+      cardDiv.innerHTML = `
+        <div class="item-card-title-row">
+          <span class="item-card-title">${card.name}</span>
+          <span class="item-card-pill">${utilization}%</span>
         </div>
+        <div class="item-card-row">
+          <span>Balance: ₱${card.balance.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+          <span style="margin-left:auto;">Limit: ₱${card.limit.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+        </div>
+        <div class="item-card-progress">
+          <div class="item-card-progress-inner" style="width:${utilization}%;"></div>
+        </div>
+        <div class="item-card-meta">APR: ${card.apr}% | Due: ${card.dueDate}</div>
       `;
+      cardList.appendChild(cardDiv);
     });
   }
 
@@ -806,22 +826,23 @@
     goalList.innerHTML = '';
     goals.forEach(goal => {
       const progress = Math.round(goal.progressPercentage);
-      goalList.innerHTML += `
-        <div class="modern-card">
-          <div class="modern-card-title-row">
-            <span class="modern-card-title">${goal.name}</span>
-            <span class="modern-card-pill">${progress}%</span>
-          </div>
-          <div class="modern-card-row">
-            <span>Saved: ₱${goal.savedAmount.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
-            <span style="margin-left:auto;">Target: ₱${goal.targetAmount.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
-          </div>
-          <div class="modern-card-progress">
-            <div class="modern-card-progress-inner" style="width:${progress}%;"></div>
-          </div>
-          <div class="modern-card-meta">₱${goal.remainingAmount.toLocaleString(undefined,{minimumFractionDigits:2})} remaining | Due: ${goal.targetDate}</div>
+      const goalDiv = document.createElement('div');
+      goalDiv.className = 'item-card';
+      goalDiv.innerHTML = `
+        <div class="item-card-title-row">
+          <span class="item-card-title">${goal.name}</span>
+          <span class="item-card-pill">${progress}%</span>
         </div>
+        <div class="item-card-row">
+          <span>Saved: ₱${goal.savedAmount.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+          <span style="margin-left:auto;">Target: ₱${goal.targetAmount.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+        </div>
+        <div class="item-card-progress">
+          <div class="item-card-progress-inner" style="width:${progress}%;"></div>
+        </div>
+        <div class="item-card-meta">₱${goal.remainingAmount.toLocaleString(undefined,{minimumFractionDigits:2})} remaining | Due: ${goal.targetDate}</div>
       `;
+      goalList.appendChild(goalDiv);
     });
   }
 
@@ -829,19 +850,20 @@
     const reminderList = document.getElementById('reminder-list');
     reminderList.innerHTML = '';
     reminders.forEach(reminder => {
-      reminderList.innerHTML += `
-        <div class="modern-card">
-          <div class="modern-card-title-row">
-            <span class="modern-card-title">${reminder.description}</span>
-            <span class="modern-card-pill">${reminder.isOverdue ? 'Overdue' : reminder.recurring}</span>
-          </div>
-          <div class="modern-card-row">
-            <span>Amount: ₱${reminder.amount.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
-            <span style="margin-left:auto;">Due: ${reminder.dueDate}</span>
-          </div>
-          <div class="modern-card-meta">${reminder.isOverdue ? reminder.daysOverdue + ' days overdue' : ''}</div>
+      const reminderDiv = document.createElement('div');
+      reminderDiv.className = 'item-card';
+      reminderDiv.innerHTML = `
+        <div class="item-card-title-row">
+          <span class="item-card-title">${reminder.description}</span>
+          <span class="item-card-pill">${reminder.isOverdue ? 'Overdue' : reminder.recurring}</span>
         </div>
+        <div class="item-card-row">
+          <span>Amount: ₱${reminder.amount.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+          <span style="margin-left:auto;">Due: ${reminder.dueDate}</span>
+        </div>
+        <div class="item-card-meta">${reminder.isOverdue ? reminder.daysOverdue + ' days overdue' : ''}</div>
       `;
+      reminderList.appendChild(reminderDiv);
     });
   }
 
