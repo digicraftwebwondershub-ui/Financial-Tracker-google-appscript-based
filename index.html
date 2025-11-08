@@ -628,6 +628,31 @@
       </div>
       <div class="modern-card" style="margin-top:32px;">
         <div class="modern-card-header"><i class="fas fa-list"></i> Transaction History</div>
+        <div id="transaction-filters" class="form-grid" style="margin-bottom: 20px;">
+          <div class="form-group">
+            <label for="filter-type">Type</label>
+            <select id="filter-type" onchange="filterTransactions()">
+              <option value="">All</option>
+              <option value="Income">Income</option>
+              <option value="Expense">Expense</option>
+              <option value="Savings">Savings</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-category">Category</label>
+            <select id="filter-category" onchange="filterTransactions()">
+              <option value="">All</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-start-date">Start Date</label>
+            <input type="date" id="filter-start-date" onchange="filterTransactions()">
+          </div>
+          <div class="form-group">
+            <label for="filter-end-date">End Date</label>
+            <input type="date" id="filter-end-date" onchange="filterTransactions()">
+          </div>
+        </div>
         <div class="transaction-history-grid" id="transaction-list"></div>
       </div>
     </div>
@@ -735,6 +760,14 @@
               <option value="Expense">Expense</option>
               <option value="Savings">Savings</option>
             </select>
+          </div>
+          <div class="form-group">
+            <label for="transaction-payment-method">Payment Method</label>
+            <input type="text" id="transaction-payment-method" name="paymentMethod" placeholder="e.g., Credit Card, GCash">
+          </div>
+          <div class="form-group">
+            <label for="transaction-account-name">Account Name</label>
+            <input type="text" id="transaction-account-name" name="accountName" placeholder="e.g., BPI, Personal Wallet">
           </div>
           <div class="form-group">
             <label for="transaction-category">Category *</label>
@@ -935,14 +968,91 @@
     }
   }
 
-  function editTransaction(idx) {
-    alert("Edit functionality for transaction #" + idx + " should open a modal or form.");
+  let allTransactions = [];
+
+  function editTransaction(transaction) {
+    const modal = document.getElementById('add-edit-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const form = document.getElementById('modal-form');
+    form.innerHTML = ''; // Clear previous form
+    form.onsubmit = null; // Clear previous submit handler
+
+    modalTitle.innerText = 'Edit Transaction';
+    form.innerHTML = `
+      <input type="hidden" name="row" value="${transaction.row}">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="transaction-type">Transaction Type *</label>
+          <select id="transaction-type" name="type" required>
+            <option value="Income">Income</option>
+            <option value="Expense">Expense</option>
+            <option value="Savings">Savings</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="transaction-payment-method">Payment Method</label>
+          <input type="text" id="transaction-payment-method" name="paymentMethod" placeholder="e.g., Credit Card, GCash">
+        </div>
+        <div class="form-group">
+          <label for="transaction-account-name">Account Name</label>
+          <input type="text" id="transaction-account-name" name="accountName" placeholder="e.g., BPI, Personal Wallet">
+        </div>
+        <div class="form-group">
+          <label for="transaction-category">Category *</label>
+          <select id="transaction-category" name="category" required>
+            <option value="">Select category</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="transaction-amount">Amount (₱) *</label>
+          <input type="number" step="0.01" id="transaction-amount" name="amount" placeholder="0.00" required>
+        </div>
+        <div class="form-group">
+          <label for="transaction-date">Date *</label>
+          <input type="date" id="transaction-date" name="date" required>
+        </div>
+        <div class="form-group full-width">
+          <label for="transaction-description">Description *</label>
+          <textarea id="transaction-description" name="description" rows="3" placeholder="Enter transaction description..." required></textarea>
+        </div>
+        <div class="form-group full-width">
+          <button type="submit" class="add-btn-black">Update</button>
+        </div>
+      </div>
+    `;
+
+    // Pre-fill form
+    document.querySelector('#modal-form [name="type"]').value = transaction.type;
+    updateCategoryOptions(); // Update categories based on type
+    document.querySelector('#modal-form [name="category"]').value = transaction.category;
+    document.querySelector('#modal-form [name="amount"]').value = transaction.amount;
+    document.querySelector('#modal-form [name="date"]').value = new Date(transaction.date).toISOString().slice(0, 10);
+    document.querySelector('#modal-form [name="description"]').value = transaction.description;
+    document.querySelector('#modal-form [name="paymentMethod"]').value = transaction.paymentMethod || '';
+    document.querySelector('#modal-form [name="accountName"]').value = transaction.accountName || '';
+
+    document.getElementById('transaction-type').addEventListener('change', updateCategoryOptions);
+
+    form.onsubmit = (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData.entries());
+      google.script.run.withSuccessHandler(response => {
+        alert(response.message);
+        form.reset();
+        closeModal();
+        loadPageContent();
+      }).updateTransaction(data);
+    };
+
+    modal.style.display = 'block';
   }
-  function deleteTransaction(idx) {
+
+  function deleteTransaction(row) {
     if (confirm("Are you sure you want to delete this transaction?")) {
       google.script.run.withSuccessHandler(() => {
         loadPageContent();
-      }).deleteTransaction(idx);
+      }).deleteTransaction(row);
     }
   }
 
@@ -1071,6 +1181,12 @@
   }
 
   function renderTransactions(transactions) {
+    allTransactions = transactions; // Store for filtering
+    populateCategoryFilter();
+    displayTransactions(allTransactions);
+  }
+
+  function displayTransactions(transactions) {
     const transactionList = document.getElementById('transaction-list');
     transactionList.innerHTML = '';
     transactions.forEach((tx, idx) => {
@@ -1090,19 +1206,74 @@
       }
       const txElem = document.createElement('div');
       txElem.className = 'modern-card';
+      const badgeHTML = getBadge(tx);
       txElem.innerHTML = `
         <div class="modern-card-header">
           ${icon}<span>${tx.type} - ${tx.category}</span>
           <span style="flex:1"></span>
-          <button class="edit-btn" title="Edit" onclick="editTransaction(${idx})"><i class="fas fa-edit"></i></button>
-          <button class="delete-btn" title="Delete" onclick="deleteTransaction(${idx})"><i class="fas fa-trash-alt"></i></button>
+          <button class="edit-btn" title="Edit" onclick='editTransaction(${JSON.stringify(tx)})'><i class="fas fa-edit"></i></button>
+          <button class="delete-btn" title="Delete" onclick="deleteTransaction(${tx.row})"><i class="fas fa-trash-alt"></i></button>
         </div>
         <div class="modern-card-row"><span><strong>Date:</strong> ${tx.date}</span></div>
-        <div class="modern-card-row"><span><strong>Amount:</strong> ₱${parseFloat(tx.amount).toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>
+        <div class="modern-card-row"><span><strong>Amount:</strong> <span class="${typeClass}">₱${parseFloat(tx.amount).toLocaleString(undefined, {minimumFractionDigits: 2})}</span></span></div>
         <div class="modern-card-row"><span><strong>Description:</strong> ${tx.description}</span></div>
+        <div class="modern-card-row"><span><strong>Payment Method:</strong> ${tx.paymentMethod || 'N/A'}</span></div>
+        <div class="modern-card-row"><span><strong>Account:</strong> ${tx.accountName || 'N/A'}</span></div>
+        ${badgeHTML}
       `;
       transactionList.appendChild(txElem);
     });
+  }
+
+  function getBadge(tx) {
+    let badge = '';
+    if (tx.type === 'Savings' && tx.amount > 0) {
+      badge = `✨ Great — you saved ₱${tx.amount.toLocaleString(undefined, {minimumFractionDigits: 2})} today!`;
+    } else if (tx.type === 'Expense') {
+      badge = `🧾 Expense logged. Keep tracking to stay mindful!`;
+    }
+    if (badge) {
+      return `<div class="modern-card-meta" style="margin-top:10px; color: #6c757d; font-style: italic;">${badge}</div>`;
+    }
+    return '';
+  }
+
+  function populateCategoryFilter() {
+    const categoryFilter = document.getElementById('filter-category');
+    const existingOptions = new Set(Array.from(categoryFilter.options).map(opt => opt.value));
+    const categories = new Set(allTransactions.map(tx => tx.category));
+    categories.forEach(category => {
+      if (!existingOptions.has(category)) {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        categoryFilter.appendChild(option);
+      }
+    });
+  }
+
+  function filterTransactions() {
+    const type = document.getElementById('filter-type').value;
+    const category = document.getElementById('filter-category').value;
+    const startDate = document.getElementById('filter-start-date').value;
+    const endDate = document.getElementById('filter-end-date').value;
+
+    let filtered = allTransactions;
+
+    if (type) {
+      filtered = filtered.filter(tx => tx.type === type);
+    }
+    if (category) {
+      filtered = filtered.filter(tx => tx.category === category);
+    }
+    if (startDate) {
+      filtered = filtered.filter(tx => new Date(tx.date) >= new Date(startDate));
+    }
+    if (endDate) {
+      filtered = filtered.filter(tx => new Date(tx.date) <= new Date(endDate));
+    }
+
+    displayTransactions(filtered);
   }
 
   function renderCreditCards(cards) {
