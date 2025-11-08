@@ -352,9 +352,14 @@ function addReminder(formData) {
   const sheet = ss.getSheetByName("Reminders");
   const rowData = [
     formData.description,
+    formData.category,
     new Date(formData.dueDate),
     parseFloat(formData.amount),
-    formData.recurring
+    'Pending', // Default status
+    formData.recurring,
+    '', // Placeholder for days left,
+    formData.paymentChannel,
+    formData.autoNotify
   ];
   sheet.appendRow(rowData);
   return { status: "success", message: "Reminder added successfully!" };
@@ -366,19 +371,43 @@ function getRemindersData() {
   const sheet = ss.getSheetByName("Reminders");
   const data = sheet.getDataRange().getValues();
   const reminders = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   for (let i = 1; i < data.length; i++) {
-    const dueDate = new Date(data[i][1]);
-    const today = new Date();
-    const daysOverdue = Math.ceil((today - dueDate) / (1000 * 60 * 60 * 24));
-    const isOverdue = daysOverdue > 0;
+    const dueDate = new Date(data[i][2]);
+    dueDate.setHours(0, 0, 0, 0);
+    const daysLeft = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+    const status = data[i][4];
+
+    let urgency = 'safe';
+    if (daysLeft < 3 || status === 'Overdue') {
+      urgency = 'urgent';
+    } else if (daysLeft <= 7) {
+      urgency = 'approaching';
+    }
+
+    let feedback = "";
+    if (status === 'Paid') {
+      feedback = "✅ You paid your " + data[i][0] + " on time — nice discipline!";
+    } else if (daysLeft < 0) {
+      feedback = "⏰ Overdue! Don’t stress — mark it done once paid.";
+    } else if (daysLeft <= 2) {
+      feedback = "📅 " + data[i][0] + " bill due in " + daysLeft + " days — schedule a reminder payment.";
+    }
 
     reminders.push({
       description: data[i][0],
       dueDate: Utilities.formatDate(dueDate, Session.getScriptTimeZone(), "MMM dd, yyyy"),
-      amount: data[i][2],
-      recurring: data[i][3],
-      daysOverdue: daysOverdue,
-      isOverdue: isOverdue
+      amount: data[i][3],
+      status: status,
+      recurring: data[i][5],
+      daysLeft: daysLeft,
+      urgency: urgency,
+      feedback: feedback,
+      category: data[i][1],
+      autoNotify: data[i][8],
+      paymentChannel: data[i][7]
     });
   }
   return reminders;

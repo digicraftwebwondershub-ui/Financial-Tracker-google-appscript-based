@@ -516,6 +516,17 @@
     .tx-type-expense { color: var(--danger-color);}
     .tx-type-savings { color: #17a2b8;}
 
+    /* Reminder Urgency Colors */
+    .reminder-safe {
+      border-left: 5px solid var(--success-color);
+    }
+    .reminder-approaching {
+      border-left: 5px solid var(--warning-color);
+    }
+    .reminder-urgent {
+      border-left: 5px solid var(--danger-color);
+    }
+
     /* Modal Styles */
     .modal {
       display: none;
@@ -914,9 +925,13 @@
       modalTitle.innerText = 'Add Reminder';
       form.innerHTML = `
         <div class="form-grid">
-          <div class="form-group full-width">
+          <div class="form-group">
             <label for="reminder-description">Description *</label>
             <input type="text" id="reminder-description" name="description" required>
+          </div>
+          <div class="form-group">
+            <label for="reminder-category">Category</label>
+            <input type="text" id="reminder-category" name="category">
           </div>
           <div class="form-group">
             <label for="reminder-due-date">Due Date *</label>
@@ -935,6 +950,17 @@
               <option value="Monthly">Monthly</option>
               <option value="Yearly">Yearly</option>
             </select>
+          </div>
+          <div class="form-group">
+            <label for="reminder-auto-notify">Auto Notify</label>
+            <select id="reminder-auto-notify" name="autoNotify">
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+          <div class="form-group full-width">
+            <label for="reminder-payment-channel">Payment Channel</label>
+            <input type="text" id="reminder-payment-channel" name="paymentChannel">
           </div>
           <div class="form-group full-width">
             <button type="submit" class="add-btn-black">Submit</button>
@@ -1371,17 +1397,18 @@
     reminderList.innerHTML = '';
     reminders.forEach(reminder => {
       const reminderDiv = document.createElement('div');
-      reminderDiv.className = 'item-card';
+      reminderDiv.className = `item-card reminder-${reminder.urgency}`;
       reminderDiv.innerHTML = `
         <div class="item-card-title-row">
           <span class="item-card-title">${reminder.description}</span>
-          <span class="item-card-pill">${reminder.isOverdue ? 'Overdue' : reminder.recurring}</span>
+          <span class="item-card-pill">${reminder.status}</span>
         </div>
         <div class="item-card-row">
           <span>Amount: ₱${reminder.amount.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
           <span style="margin-left:auto;">Due: ${reminder.dueDate}</span>
         </div>
-        <div class="item-card-meta">${reminder.isOverdue ? reminder.daysOverdue + ' days overdue' : ''}</div>
+        <div class="item-card-meta">${reminder.daysLeft} days left</div>
+        <div class="item-card-meta" style="margin-top: 10px; font-style: italic;">${reminder.feedback}</div>
       `;
       reminderList.appendChild(reminderDiv);
     });
