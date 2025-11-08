@@ -80,8 +80,8 @@ function getDashboardData() {
   const goalSummary = [];
   if (goalsData.length > 1) {
     goalsData.slice(1).forEach(goal => {
-      const savedAmount = goal[2];
-      const targetAmount = goal[1];
+      const savedAmount = goal[3];
+      const targetAmount = goal[2];
       const progress = (savedAmount / targetAmount) * 100;
       const remaining = targetAmount - savedAmount;
       goalSummary.push({
@@ -90,7 +90,7 @@ function getDashboardData() {
         saved: savedAmount,
         target: targetAmount,
         remaining: remaining,
-        dueDate: Utilities.formatDate(new Date(goal[3]), Session.getScriptTimeZone(), "MMM dd, yyyy")
+        dueDate: Utilities.formatDate(new Date(goal[4]), Session.getScriptTimeZone(), "MMM dd, yyyy")
       });
     });
   }
@@ -290,9 +290,12 @@ function addSavingsGoal(formData) {
   const sheet = ss.getSheetByName("Goals");
   const rowData = [
     formData.goalName,
+    formData.category,
     parseFloat(formData.targetAmount),
     parseFloat(formData.savedAmount),
-    new Date(formData.targetDate)
+    new Date(formData.targetDate),
+    '', // Placeholder for monthly savings, can be calculated or entered manually
+    formData.priority
   ];
   sheet.appendRow(rowData);
   return { status: "success", message: "Savings Goal added successfully!" };
@@ -305,14 +308,23 @@ function getGoalsData() {
   const data = sheet.getDataRange().getValues();
   const goals = [];
   for (let i = 1; i < data.length; i++) {
-    const targetAmount = data[i][1];
-    const savedAmount = data[i][2];
-    const targetDate = new Date(data[i][3]);
+    const targetAmount = data[i][2];
+    const savedAmount = data[i][3];
+    const targetDate = new Date(data[i][4]);
     const today = new Date();
     const remainingDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
     const remainingAmount = targetAmount - savedAmount;
     const monthlySavingsNeeded = remainingDays > 0 ? (remainingAmount / (remainingDays / 30.44)).toFixed(2) : 0;
     const progressPercentage = (savedAmount / targetAmount) * 100;
+    
+    let insight = "";
+    if (progressPercentage >= 100) {
+      insight = "✨ Goal achieved! Treat yourself (mindfully).";
+    } else if (progressPercentage >= 70) {
+      insight = `🎯 You’re ${progressPercentage.toFixed(0)}% to your ${data[i][0]} fund — only ₱${remainingAmount.toLocaleString()} to go!`;
+    } else if (monthlySavingsNeeded > 0) {
+      insight = `💪 Stay consistent! Saving ₱${(monthlySavingsNeeded / 4).toLocaleString()} more this week gets you back on track.`;
+    }
 
     goals.push({
       name: data[i][0],
@@ -323,7 +335,10 @@ function getGoalsData() {
       remainingDays: remainingDays,
       monthlySavingsNeeded: monthlySavingsNeeded,
       progressPercentage: progressPercentage.toFixed(2),
-      status: (remainingDays <= 0 && remainingAmount > 0) ? "Overdue" : ""
+      status: (remainingDays <= 0 && remainingAmount > 0) ? "Overdue" : "",
+      category: data[i][1],
+      priority: data[i][6],
+      insight: insight
     });
   }
   return goals;
