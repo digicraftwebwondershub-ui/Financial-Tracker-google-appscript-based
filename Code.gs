@@ -1,5 +1,6 @@
 // Function to serve the HTML webpage
 function doGet() {
+  createDailyTrigger();
   return HtmlService.createHtmlOutputFromFile('index')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0');
@@ -95,6 +96,21 @@ function getDashboardData() {
     });
   }
 
+  const savingsImprovement = ((totalSavings - prevTotalSavings) / prevTotalSavings) * 100;
+  let motivationalMessage = "Keep going! Every peso saved is a step toward freedom.";
+  if (savingsImprovement > 10) {
+    motivationalMessage = `You saved ${savingsImprovement.toFixed(0)}% more this month than last — amazing progress!`;
+  } else if (totalExpenses > totalIncome) {
+    motivationalMessage = "It’s okay if you overspent — awareness is the first step to control.";
+  }
+
+  const tips = [
+    "💡 Tip of the week: Automate your savings to build consistency.",
+    "💡 Tip of the week: Review your subscriptions. Do you use them all?",
+    "💡 Tip of the week: Try a no-spend weekend challenge!"
+  ];
+  const weeklyTip = tips[Math.floor(Math.random() * tips.length)];
+
   return {
     netIncome: totalIncome - totalExpenses,
     totalExpenses: totalExpenses,
@@ -106,7 +122,10 @@ function getDashboardData() {
     savingsTrend: totalSavings - prevTotalSavings,
     expenseTrend: totalExpenses - prevTotalExpenses,
     spendingCategories: spendingCategories,
-    incomeExpenseTrend: incomeExpenseTrend
+    incomeExpenseTrend: incomeExpenseTrend,
+    welcomeMessage: `Good morning, Michelle! Here’s how your finances look today ☀️`,
+    motivationalMessage: motivationalMessage,
+    weeklyTip: weeklyTip
   };
 }
 
@@ -411,4 +430,34 @@ function getRemindersData() {
     });
   }
   return reminders;
+}
+
+function updateDaysLeft() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Reminders");
+  const data = sheet.getDataRange().getValues();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (let i = 1; i < data.length; i++) {
+    const dueDate = new Date(data[i][2]);
+    dueDate.setHours(0, 0, 0, 0);
+    const daysLeft = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+    sheet.getRange(i + 1, 7).setValue(daysLeft);
+  }
+}
+
+function createDailyTrigger() {
+  // Deletes all existing triggers to avoid duplicates
+  const triggers = ScriptApp.getProjectTriggers();
+  for (const trigger of triggers) {
+    ScriptApp.deleteTrigger(trigger);
+  }
+
+  // Creates a new trigger
+  ScriptApp.newTrigger('updateDaysLeft')
+      .timeBased()
+      .everyDays(1)
+      .atHour(1)
+      .create();
 }
