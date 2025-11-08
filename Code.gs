@@ -119,7 +119,9 @@ function addTransaction(formData) {
     formData.type,
     formData.category,
     parseFloat(formData.amount),
-    formData.description
+    formData.description,
+    formData.paymentMethod,
+    formData.accountName
   ];
   sheet.appendRow(rowData);
   return { status: "success", message: "Transaction added successfully!" };
@@ -133,14 +135,42 @@ function getTransactions() {
   const transactions = [];
   for (let i = 1; i < data.length; i++) {
     transactions.push({
+      row: i + 1, // Add row number for editing/deleting
       date: Utilities.formatDate(new Date(data[i][0]), Session.getScriptTimeZone(), "MMM dd, yyyy"),
       type: data[i][1],
       category: data[i][2],
       amount: data[i][3],
-      description: data[i][4]
+      description: data[i][4],
+      paymentMethod: data[i][5],
+      accountName: data[i][6]
     });
   }
   return transactions;
+}
+
+// Function to update a transaction
+function updateTransaction(rowData) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Transactions");
+  const row = parseInt(rowData.row);
+  sheet.getRange(row, 1, 1, 7).setValues([[
+    new Date(rowData.date),
+    rowData.type,
+    rowData.category,
+    parseFloat(rowData.amount),
+    rowData.description,
+    rowData.paymentMethod,
+    rowData.accountName
+  ]]);
+  return { status: "success", message: "Transaction updated successfully!" };
+}
+
+// Function to delete a transaction
+function deleteTransaction(row) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Transactions");
+  sheet.deleteRow(parseInt(row));
+  return { status: "success", message: "Transaction deleted successfully!" };
 }
 
 // Function to add a credit card
