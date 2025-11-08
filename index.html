@@ -314,6 +314,11 @@
       font-size: 0.97rem;
       margin-top: 5px;
     }
+    .item-card-actions {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
 
     /* Add Button top right of section header (BLACK) */
     .section-header-row, .form-section-header-row {
@@ -1312,7 +1317,11 @@
       cardDiv.innerHTML = `
         <div class="item-card-title-row">
           <span class="item-card-title">${card.name} (${card.bankName})</span>
-          <span class="item-card-pill" style="background-color: ${bankColor}">${utilization}%</span>
+          <div class="item-card-actions">
+            <span class="item-card-pill" style="background-color: ${bankColor}">${utilization}%</span>
+            <button class="edit-btn" title="Edit" onclick='editCreditCard(${JSON.stringify(card)})'><i class="fas fa-edit"></i></button>
+            <button class="delete-btn" title="Delete" onclick="deleteCreditCard(${card.row})"><i class="fas fa-trash-alt"></i></button>
+          </div>
         </div>
         <div class="item-card-row">
           <span>Balance: ₱${card.balance.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
