@@ -514,6 +514,40 @@
     .tx-type-income { color: var(--success-color);}
     .tx-type-expense { color: var(--danger-color);}
     .tx-type-savings { color: #17a2b8;}
+
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.5);
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: 10% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 500px;
+      border-radius: 16px;
+    }
+    .close-btn {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+    }
+    .close-btn:hover,
+    .close-btn:focus {
+      color: black;
+      text-decoration: none;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -523,7 +557,7 @@
         <h1>Personal Finance Tracker</h1>
         <p>Track your expenses, manage your goals, and stay on top of your finances</p>
       </div>
-      <div class="logo"><i class="fas fa-wallet"></i><i class="fab fa-php"></i></div>
+      <div class="logo"><i class="fas fa-wallet"></i></div>
     </div>
     <div class="nav-bar">
       <a href="#" class="nav-link active" data-target="dashboard"><i class="fas fa-chart-line"></i> Dashboard</a>
@@ -579,37 +613,6 @@
             <i class="fas fa-plus"></i> Add Transaction
           </button>
         </div>
-        <form id="transaction-form">
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="transaction-type">Transaction Type *</label>
-              <select id="transaction-type" name="type" required>
-                <option value="">Select type</option>
-                <option value="Income">Income</option>
-                <option value="Expense">Expense</option>
-                <option value="Savings">Savings</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="transaction-category">Category *</label>
-              <select id="transaction-category" name="category" required>
-                <option value="">Select category</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="transaction-amount">Amount (₱) *</label>
-              <input type="number" step="0.01" id="transaction-amount" name="amount" placeholder="0.00" required>
-            </div>
-            <div class="form-group">
-              <label for="transaction-date">Date *</label>
-              <input type="date" id="transaction-date" name="date" required>
-            </div>
-            <div class="form-group full-width">
-              <label for="transaction-description">Description *</label>
-              <textarea id="transaction-description" name="description" rows="3" placeholder="Enter transaction description..." required></textarea>
-            </div>
-          </div>
-        </form>
       </div>
       <div class="modern-card" style="margin-top:32px;">
         <div class="modern-card-header"><i class="fas fa-list"></i> Transaction History</div>
@@ -659,6 +662,18 @@
       </div>
     </div>
   </div>
+
+  <!-- Add/Edit Modal -->
+  <div id="add-edit-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-btn" onclick="closeModal()">&times;</span>
+      <h2 id="modal-title">Add Transaction</h2>
+      <form id="modal-form">
+        <!-- Form content will be dynamically inserted here -->
+      </form>
+    </div>
+  </div>
+
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     loadPageContent();
@@ -679,8 +694,6 @@
       google.script.run.withSuccessHandler(renderDashboard).getDashboardData();
     } else if (activeTab === 'transactions') {
       google.script.run.withSuccessHandler(renderTransactions).getTransactions();
-      document.getElementById('transaction-date').valueAsDate = new Date();
-      updateCategoryOptions();
     } else if (activeTab === 'cards') {
       google.script.run.withSuccessHandler(renderCreditCards).getCreditCardData();
     } else if (activeTab === 'goals') {
@@ -689,19 +702,198 @@
       google.script.run.withSuccessHandler(renderReminders).getRemindersData();
     }
   }
-  // Transaction Form
-  document.getElementById('transaction-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData.entries());
-    google.script.run.withSuccessHandler(response => {
-      alert(response.message);
-      form.reset();
+
+  function showAddForm(type) {
+    const modal = document.getElementById('add-edit-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const form = document.getElementById('modal-form');
+    form.innerHTML = ''; // Clear previous form
+    form.onsubmit = null; // Clear previous submit handler
+
+    if (type === 'transaction') {
+      modalTitle.innerText = 'Add Transaction';
+      form.innerHTML = `
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="transaction-type">Transaction Type *</label>
+            <select id="transaction-type" name="type" required>
+              <option value="">Select type</option>
+              <option value="Income">Income</option>
+              <option value="Expense">Expense</option>
+              <option value="Savings">Savings</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="transaction-category">Category *</label>
+            <select id="transaction-category" name="category" required>
+              <option value="">Select category</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="transaction-amount">Amount (₱) *</label>
+            <input type="number" step="0.01" id="transaction-amount" name="amount" placeholder="0.00" required>
+          </div>
+          <div class="form-group">
+            <label for="transaction-date">Date *</label>
+            <input type="date" id="transaction-date" name="date" required>
+          </div>
+          <div class="form-group full-width">
+            <label for="transaction-description">Description *</label>
+            <textarea id="transaction-description" name="description" rows="3" placeholder="Enter transaction description..." required></textarea>
+          </div>
+          <div class="form-group full-width">
+            <button type="submit" class="add-btn-black">Submit</button>
+          </div>
+        </div>
+      `;
+      document.getElementById('transaction-date').valueAsDate = new Date();
       updateCategoryOptions();
-      loadPageContent();
-    }).addTransaction(data);
-  });
+      document.getElementById('transaction-type').addEventListener('change', updateCategoryOptions);
+      form.onsubmit = (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        google.script.run.withSuccessHandler(response => {
+          alert(response.message);
+          form.reset();
+          closeModal();
+          loadPageContent();
+        }).addTransaction(data);
+      };
+    } else if (type === 'card') {
+      modalTitle.innerText = 'Add Credit Card';
+      form.innerHTML = `
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="card-name">Card Name *</label>
+            <input type="text" id="card-name" name="cardName" required>
+          </div>
+          <div class="form-group">
+            <label for="card-limit">Credit Limit (₱) *</label>
+            <input type="number" step="0.01" id="card-limit" name="limit" required>
+          </div>
+          <div class="form-group">
+            <label for="card-balance">Current Balance (₱) *</label>
+            <input type="number" step="0.01" id="card-balance" name="balance" required>
+          </div>
+          <div class="form-group">
+            <label for="card-apr">APR (%) *</label>
+            <input type="number" step="0.01" id="card-apr" name="apr" required>
+          </div>
+          <div class="form-group">
+            <label for="card-due-date">Due Date *</label>
+            <input type="date" id="card-due-date" name="dueDate" required>
+          </div>
+          <div class="form-group">
+            <label for="card-last-payment">Last Payment (₱)</label>
+            <input type="number" step="0.01" id="card-last-payment" name="lastPayment">
+          </div>
+          <div class="form-group">
+            <label for="card-last-payment-date">Last Payment Date</label>
+            <input type="date" id="card-last-payment-date" name="lastPaymentDate">
+          </div>
+          <div class="form-group full-width">
+            <button type="submit" class="add-btn-black">Submit</button>
+          </div>
+        </div>
+      `;
+      form.onsubmit = (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        google.script.run.withSuccessHandler(response => {
+          alert(response.message);
+          form.reset();
+          closeModal();
+          loadPageContent();
+        }).addCreditCard(data);
+      };
+    } else if (type === 'goal') {
+      modalTitle.innerText = 'Add Savings Goal';
+      form.innerHTML = `
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="goal-name">Goal Name *</label>
+            <input type="text" id="goal-name" name="goalName" required>
+          </div>
+          <div class="form-group">
+            <label for="goal-target-amount">Target Amount (₱) *</label>
+            <input type="number" step="0.01" id="goal-target-amount" name="targetAmount" required>
+          </div>
+          <div class="form-group">
+            <label for="goal-saved-amount">Already Saved (₱) *</label>
+            <input type="number" step="0.01" id="goal-saved-amount" name="savedAmount" required>
+          </div>
+          <div class="form-group">
+            <label for="goal-target-date">Target Date *</label>
+            <input type="date" id="goal-target-date" name="targetDate" required>
+          </div>
+          <div class="form-group full-width">
+            <button type="submit" class="add-btn-black">Submit</button>
+          </div>
+        </div>
+      `;
+      form.onsubmit = (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        google.script.run.withSuccessHandler(response => {
+          alert(response.message);
+          form.reset();
+          closeModal();
+          loadPageContent();
+        }).addSavingsGoal(data);
+      };
+    } else if (type === 'reminder') {
+      modalTitle.innerText = 'Add Reminder';
+      form.innerHTML = `
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="reminder-description">Description *</label>
+            <input type="text" id="reminder-description" name="description" required>
+          </div>
+          <div class="form-group">
+            <label for="reminder-due-date">Due Date *</label>
+            <input type="date" id="reminder-due-date" name="dueDate" required>
+          </div>
+          <div class="form-group">
+            <label for="reminder-amount">Amount (₱) *</label>
+            <input type="number" step="0.01" id="reminder-amount" name="amount" required>
+          </div>
+          <div class="form-group">
+            <label for="reminder-recurring">Recurring</label>
+            <select id="reminder-recurring" name="recurring">
+              <option value="No">No</option>
+              <option value="Daily">Daily</option>
+              <option value="Weekly">Weekly</option>
+              <option value="Monthly">Monthly</option>
+              <option value="Yearly">Yearly</option>
+            </select>
+          </div>
+          <div class="form-group full-width">
+            <button type="submit" class="add-btn-black">Submit</button>
+          </div>
+        </div>
+      `;
+      form.onsubmit = (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        google.script.run.withSuccessHandler(response => {
+          alert(response.message);
+          form.reset();
+          closeModal();
+          loadPageContent();
+        }).addReminder(data);
+      };
+    }
+    modal.style.display = 'block';
+  }
+
+  function closeModal() {
+    document.getElementById('add-edit-modal').style.display = 'none';
+  }
+
   // Dynamic Category Options for Transaction Type
   const categoryOptions = {
     Income: [
@@ -729,8 +921,6 @@
       });
     }
   }
-  document.getElementById('transaction-type').addEventListener('change', updateCategoryOptions);
-  updateCategoryOptions();
 
   function editTransaction(idx) {
     alert("Edit functionality for transaction #" + idx + " should open a modal or form.");
@@ -926,10 +1116,6 @@
       `;
       reminderList.appendChild(reminderDiv);
     });
-  }
-
-  function showAddForm(type) {
-    alert("Show add/edit form for: " + type + ". Implement modal or inline form as needed.");
   }
 </script>
 </body>
