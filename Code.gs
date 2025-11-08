@@ -328,15 +328,6 @@ function getGoalsData() {
       insight = `💪 Stay consistent! Saving ₱${(monthlySavingsNeeded / 4).toLocaleString()} more this week gets you back on track.`;
     }
 
-    let insight = "";
-    if (progressPercentage >= 100) {
-      insight = "✨ Goal achieved! Treat yourself (mindfully).";
-    } else if (progressPercentage >= 70) {
-      insight = `🎯 You’re ${progressPercentage.toFixed(0)}% to your ${data[i][0]} fund — only ₱${remainingAmount.toLocaleString()} to go!`;
-    } else if (monthlySavingsNeeded > 0) {
-      insight = `💪 Stay consistent! Saving ₱${(monthlySavingsNeeded / 4).toLocaleString()} more this week gets you back on track.`;
-    }
-
     goals.push({
       name: data[i][0],
       targetAmount: targetAmount,
