@@ -184,7 +184,9 @@ function addCreditCard(formData) {
     parseFloat(formData.apr),
     new Date(formData.dueDate),
     formData.lastPayment ? parseFloat(formData.lastPayment) : '',
-    formData.lastPaymentDate ? new Date(formData.lastPaymentDate) : ''
+    formData.lastPaymentDate ? new Date(formData.lastPaymentDate) : '',
+    formData.bankName,
+    formData.statementDate ? new Date(formData.statementDate) : ''
   ];
   sheet.appendRow(rowData);
   return { status: "success", message: "Credit Card added successfully!" };
@@ -249,6 +251,18 @@ function getCreditCardData() {
     // Check if Last Payment and Last Payment Date exist before accessing
     const lastPayment = data[i][5] || 0;
     const lastPaymentDate = data[i][6] ? Utilities.formatDate(data[i][6], Session.getScriptTimeZone(), "MMM dd, yyyy") : 'N/A';
+    const bankName = data[i][7] || '';
+    const statementDate = data[i][8] ? Utilities.formatDate(data[i][8], Session.getScriptTimeZone(), "MMM dd") : 'N/A';
+
+    let insight = "";
+    if (daysUntilDue > 0 && daysUntilDue <= 5) {
+      insight = `✅ Your next bill is due in ${daysUntilDue} days — you’ve got this!`;
+    } else if (utilization > 70) {
+      const amountToPay = (balance - (limit * 0.3)).toFixed(2);
+      insight = `⚠️ You’re close to your limit. Try paying ₱${amountToPay} to bring usage under 30%.`;
+    } else if (lastPayment > 0) {
+      insight = "👏 No missed payments this month. Keep your streak!";
+    }
 
     cards.push({
       row: i + 1,
@@ -261,7 +275,10 @@ function getCreditCardData() {
       lastPayment: lastPayment,
       lastPaymentDate: lastPaymentDate,
       utilization: utilization.toFixed(2),
-      status: status
+      status: status,
+      bankName: bankName,
+      statementDate: statementDate,
+      insight: insight
     });
   }
   return cards;

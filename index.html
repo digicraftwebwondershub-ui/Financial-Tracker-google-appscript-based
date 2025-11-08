@@ -838,6 +838,14 @@
             <label for="card-last-payment-date">Last Payment Date</label>
             <input type="date" id="card-last-payment-date" name="lastPaymentDate">
           </div>
+          <div class="form-group">
+            <label for="card-bank-name">Bank Name</label>
+            <input type="text" id="card-bank-name" name="bankName">
+          </div>
+          <div class="form-group">
+            <label for="card-statement-date">Statement Date</label>
+            <input type="date" id="card-statement-date" name="statementDate">
+          </div>
           <div class="form-group full-width">
             <button type="submit" class="add-btn-black">Submit</button>
           </div>
@@ -1276,6 +1284,18 @@
     displayTransactions(filtered);
   }
 
+  function getBankColor(bankName) {
+    const colors = {
+      'bpi': '#007bff',
+      'bdo': '#00529b',
+      'metrobank': '#b5002a',
+      'citibank': '#003b70',
+      'security bank': '#f26f21',
+      'default': '#181818'
+    };
+    return colors[bankName.toLowerCase()] || colors['default'];
+  }
+
   function renderCreditCards(cards) {
     const cardList = document.getElementById('card-list');
     cardList.innerHTML = '';
@@ -1285,21 +1305,24 @@
     }
     cards.forEach(card => {
       const utilization = Math.round(card.utilization);
+      const bankColor = getBankColor(card.bankName);
       const cardDiv = document.createElement('div');
       cardDiv.className = 'item-card';
+      cardDiv.style.borderTop = `5px solid ${bankColor}`;
       cardDiv.innerHTML = `
         <div class="item-card-title-row">
-          <span class="item-card-title">${card.name}</span>
-          <span class="item-card-pill">${utilization}%</span>
+          <span class="item-card-title">${card.name} (${card.bankName})</span>
+          <span class="item-card-pill" style="background-color: ${bankColor}">${utilization}%</span>
         </div>
         <div class="item-card-row">
           <span>Balance: ₱${card.balance.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
           <span style="margin-left:auto;">Limit: ₱${card.limit.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
         </div>
         <div class="item-card-progress">
-          <div class="item-card-progress-inner" style="width:${utilization}%;"></div>
+          <div class="item-card-progress-inner" style="width:${utilization}%; background-color: ${bankColor}"></div>
         </div>
-        <div class="item-card-meta">APR: ${card.apr}% | Due: ${card.dueDate}</div>
+        <div class="item-card-meta">APR: ${card.apr}% | Due: ${card.dueDate} | Statement: ${card.statementDate}</div>
+        <div class="item-card-meta" style="margin-top: 10px; font-style: italic;">${card.insight}</div>
       `;
       cardList.appendChild(cardDiv);
     });
