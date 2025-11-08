@@ -1284,6 +1284,18 @@
     displayTransactions(filtered);
   }
 
+  function getBankColor(bankName) {
+    const colors = {
+      'bpi': '#007bff',
+      'bdo': '#00529b',
+      'metrobank': '#b5002a',
+      'citibank': '#003b70',
+      'security bank': '#f26f21',
+      'default': '#181818'
+    };
+    return colors[bankName.toLowerCase()] || colors['default'];
+  }
+
   function renderCreditCards(cards) {
     const cardList = document.getElementById('card-list');
     cardList.innerHTML = '';
