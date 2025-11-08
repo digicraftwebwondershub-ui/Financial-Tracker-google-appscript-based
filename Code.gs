@@ -15,21 +15,51 @@ function getDashboardData() {
   const today = new Date();
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
-  
+  const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+  const prevMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
   // Monthly Summary
   let totalIncome = 0;
   let totalExpenses = 0;
   let totalSavings = 0;
+  let prevTotalExpenses = 0;
+  let prevTotalSavings = 0;
+  const spendingCategories = {};
+  const incomeExpenseTrend = { labels: [], income: [], expenses: [] };
+
   const transactionData = transactionSheet.getDataRange().getValues();
   for (let i = 1; i < transactionData.length; i++) {
     const rowDate = new Date(transactionData[i][0]);
-    if (rowDate.getMonth() === currentMonth && rowDate.getFullYear() === currentYear) {
+    const month = rowDate.getMonth();
+    const year = rowDate.getFullYear();
+
+    if (year === currentYear && month === currentMonth) {
       if (transactionData[i][1] === "Income") {
         totalIncome += transactionData[i][3];
       } else if (transactionData[i][1] === "Expense") {
         totalExpenses += transactionData[i][3];
+        const category = transactionData[i][2];
+        spendingCategories[category] = (spendingCategories[category] || 0) + transactionData[i][3];
       } else if (transactionData[i][1] === "Savings") {
         totalSavings += transactionData[i][3];
+      }
+      const day = Utilities.formatDate(rowDate, Session.getScriptTimeZone(), "MM/dd");
+      if (!incomeExpenseTrend.labels.includes(day)) {
+        incomeExpenseTrend.labels.push(day);
+        incomeExpenseTrend.income.push(0);
+        incomeExpenseTrend.expenses.push(0);
+      }
+      const index = incomeExpenseTrend.labels.indexOf(day);
+      if (transactionData[i][1] === "Income") {
+        incomeExpenseTrend.income[index] += transactionData[i][3];
+      } else if (transactionData[i][1] === "Expense") {
+        incomeExpenseTrend.expenses[index] += transactionData[i][3];
+      }
+    } else if (year === prevMonthYear && month === prevMonth) {
+      if (transactionData[i][1] === "Expense") {
+        prevTotalExpenses += transactionData[i][3];
+      } else if (transactionData[i][1] === "Savings") {
+        prevTotalSavings += transactionData[i][3];
       }
     }
   }
@@ -49,19 +79,19 @@ function getDashboardData() {
   const goalsData = goalsSheet.getDataRange().getValues();
   const goalSummary = [];
   if (goalsData.length > 1) {
-    const firstGoal = goalsData[1];
-    const savedAmount = firstGoal[2];
-    const targetAmount = firstGoal[1];
-    const progress = (savedAmount / targetAmount) * 100;
-    const remaining = targetAmount - savedAmount;
-    
-    goalSummary.push({
-      name: firstGoal[0],
-      progress: progress.toFixed(2),
-      saved: savedAmount,
-      target: targetAmount,
-      remaining: remaining,
-      dueDate: Utilities.formatDate(new Date(firstGoal[3]), Session.getScriptTimeZone(), "MMM dd, yyyy")
+    goalsData.slice(1).forEach(goal => {
+      const savedAmount = goal[2];
+      const targetAmount = goal[1];
+      const progress = (savedAmount / targetAmount) * 100;
+      const remaining = targetAmount - savedAmount;
+      goalSummary.push({
+        name: goal[0],
+        progress: progress.toFixed(2),
+        saved: savedAmount,
+        target: targetAmount,
+        remaining: remaining,
+        dueDate: Utilities.formatDate(new Date(goal[3]), Session.getScriptTimeZone(), "MMM dd, yyyy")
+      });
     });
   }
 
@@ -72,7 +102,11 @@ function getDashboardData() {
     creditUsage: creditUsage.toFixed(2) || 0,
     totalCreditAvailable: totalLimit - totalBalance,
     creditCardSummary: getCreditCardData(),
-    goalsSummary: goalSummary
+    goalsSummary: goalSummary,
+    savingsTrend: totalSavings - prevTotalSavings,
+    expenseTrend: totalExpenses - prevTotalExpenses,
+    spendingCategories: spendingCategories,
+    incomeExpenseTrend: incomeExpenseTrend
   };
 }
 
