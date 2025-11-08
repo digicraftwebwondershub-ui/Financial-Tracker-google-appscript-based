@@ -971,7 +971,7 @@
     document.getElementById('total-expenses-message').innerText = expenseMessage;
     document.getElementById('savings-rate-message').innerText = savingsMessage;
     document.getElementById('credit-usage-message').innerText = creditMessage;
-
+    
     // Inspiring Quote
     const quotes = [
       "A budget tells your money where to go instead of wondering where it went.",
@@ -979,7 +979,7 @@
       "Financial freedom is available to those who learn about it and work for it."
     ];
     document.getElementById('quote-container').innerText = quotes[Math.floor(Math.random() * quotes.length)];
-
+    
     // Spending Categories Chart
     const spendingCtx = document.getElementById('spending-chart').getContext('2d');
     if(spendingChart) spendingChart.destroy();
