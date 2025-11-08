@@ -70,8 +70,8 @@ function getDashboardData() {
   let totalBalance = 0;
   const creditCardData = creditCardSheet.getDataRange().getValues();
   for (let i = 1; i < creditCardData.length; i++) {
-    totalBalance += creditCardData[i][2];
-    totalLimit += creditCardData[i][1];
+    totalBalance += creditCardData[i][3];
+    totalLimit += creditCardData[i][2];
   }
   creditUsage = (totalBalance / totalLimit) * 100;
 
@@ -179,13 +179,13 @@ function addCreditCard(formData) {
   const sheet = ss.getSheetByName("Credit Cards");
   const rowData = [
     formData.cardName,
+    formData.bankName,
     parseFloat(formData.limit),
     parseFloat(formData.balance),
-    parseFloat(formData.apr),
-    new Date(formData.dueDate),
     formData.lastPayment ? parseFloat(formData.lastPayment) : '',
+    parseFloat(formData.apr),
     formData.lastPaymentDate ? new Date(formData.lastPaymentDate) : '',
-    formData.bankName,
+    new Date(formData.dueDate),
     formData.statementDate ? new Date(formData.statementDate) : ''
   ];
   sheet.appendRow(rowData);
@@ -200,12 +200,14 @@ function editCreditCard(formData) {
   if (row > 0) {
     sheet.getRange(row, 1, 1, sheet.getLastColumn()).setValues([[
       formData.cardName,
+      formData.bankName,
       parseFloat(formData.limit),
       parseFloat(formData.balance),
-      parseFloat(formData.apr),
-      new Date(formData.dueDate),
       parseFloat(formData.lastPayment),
-      new Date(formData.lastPaymentDate)
+      parseFloat(formData.apr),
+      new Date(formData.lastPaymentDate),
+      new Date(formData.dueDate),
+      new Date(formData.statementDate)
     ]]);
     return { status: "success", message: "Credit card updated successfully!" };
   }
@@ -232,11 +234,11 @@ function getCreditCardData() {
   const today = new Date();
   
   for (let i = 1; i < data.length; i++) {
-    const balance = data[i][2];
-    const limit = data[i][1];
+    const balance = data[i][3];
+    const limit = data[i][2];
     const available = limit - balance;
     const utilization = (balance / limit) * 100;
-    const dueDate = new Date(data[i][4]);
+    const dueDate = new Date(data[i][7]);
     const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
     
     let status = "";
@@ -249,10 +251,10 @@ function getCreditCardData() {
     }
     
     // Check if Last Payment and Last Payment Date exist before accessing
-    const lastPayment = data[i][5] || 0;
-    const lastPaymentDate = data[i][6] ? Utilities.formatDate(data[i][6], Session.getScriptTimeZone(), "MMM dd, yyyy") : 'N/A';
-    const bankName = data[i][7] || '';
-    const statementDate = data[i][8] ? Utilities.formatDate(data[i][8], Session.getScriptTimeZone(), "MMM dd") : 'N/A';
+    const lastPayment = data[i][4] || 0;
+    const lastPaymentDate = data[i][6] ? Utilities.formatDate(new Date(data[i][6]), Session.getScriptTimeZone(), "MMM dd, yyyy") : 'N/A';
+    const bankName = data[i][1] || '';
+    const statementDate = data[i][8] ? Utilities.formatDate(new Date(data[i][8]), Session.getScriptTimeZone(), "MMM dd") : 'N/A';
 
     let insight = "";
     if (daysUntilDue > 0 && daysUntilDue <= 5) {
@@ -270,7 +272,7 @@ function getCreditCardData() {
       limit: limit,
       balance: balance,
       available: available,
-      apr: data[i][3],
+      apr: data[i][5],
       dueDate: Utilities.formatDate(dueDate, Session.getScriptTimeZone(), "MMM dd, yyyy"),
       lastPayment: lastPayment,
       lastPaymentDate: lastPaymentDate,
@@ -317,6 +319,15 @@ function getGoalsData() {
     const monthlySavingsNeeded = remainingDays > 0 ? (remainingAmount / (remainingDays / 30.44)).toFixed(2) : 0;
     const progressPercentage = (savedAmount / targetAmount) * 100;
     
+    let insight = "";
+    if (progressPercentage >= 100) {
+      insight = "✨ Goal achieved! Treat yourself (mindfully).";
+    } else if (progressPercentage >= 70) {
+      insight = `🎯 You’re ${progressPercentage.toFixed(0)}% to your ${data[i][0]} fund — only ₱${remainingAmount.toLocaleString()} to go!`;
+    } else if (monthlySavingsNeeded > 0) {
+      insight = `💪 Stay consistent! Saving ₱${(monthlySavingsNeeded / 4).toLocaleString()} more this week gets you back on track.`;
+    }
+
     let insight = "";
     if (progressPercentage >= 100) {
       insight = "✨ Goal achieved! Treat yourself (mindfully).";
