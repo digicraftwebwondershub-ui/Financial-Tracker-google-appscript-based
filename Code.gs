@@ -155,8 +155,10 @@ function getDashboardData() {
     "💡 Tip of the week: Try a no-spend weekend challenge!"
   ];
   const weeklyTip = tips[Math.floor(Math.random() * tips.length)];
+  const debtFreeDate = getDebtFreeDate();
 
   return {
+    debtFreeDate: debtFreeDate ? Utilities.formatDate(debtFreeDate, Session.getScriptTimeZone(), "MMM dd, yyyy") : null,
     netIncome: totalIncome - totalExpenses,
     totalExpenses: totalExpenses,
     savingsRate: (totalSavings / totalIncome) * 100 || 0,
@@ -351,6 +353,28 @@ function editCreditCard(formData) {
     return { status: "success", message: "Credit card updated successfully!" };
   }
   return { status: "error", message: "Invalid row number." };
+}
+
+// Function to calculate the debt-free date
+function getDebtFreeDate() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Installments");
+  if (!sheet) {
+    return null;
+  }
+  const data = sheet.getDataRange().getValues();
+  let maxEndDate = null;
+
+  for (let i = 1; i < data.length; i++) {
+    const status = data[i][10];
+    if (status === 'Ongoing') {
+      const endDate = new Date(data[i][8]);
+      if (maxEndDate === null || endDate > maxEndDate) {
+        maxEndDate = endDate;
+      }
+    }
+  }
+  return maxEndDate;
 }
 
 // Function to handle delete credit card
