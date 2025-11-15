@@ -73,12 +73,12 @@ function getDashboardData() {
   let creditUsage = 0;
   let totalLimit = 0;
   let totalBalance = 0;
-  const creditCardData = creditCardSheet.getDataRange().getValues();
-  for (let i = 1; i < creditCardData.length; i++) {
-    totalBalance += creditCardData[i][4];
-    totalLimit += creditCardData[i][3];
-  }
-  creditUsage = (totalBalance / totalLimit) * 100;
+  const allCards = getCreditCardData();
+  allCards.forEach(card => {
+    totalBalance += card.balance;
+    totalLimit += card.limit;
+  });
+  creditUsage = totalLimit > 0 ? (totalBalance / totalLimit) * 100 : 0;
 
   // Goals Summary
   const goalsData = goalsSheet.getDataRange().getValues();
