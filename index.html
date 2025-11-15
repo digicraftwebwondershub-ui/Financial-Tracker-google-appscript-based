@@ -715,6 +715,14 @@
           <p class="metric-value" id="credit-usage-value">0.0%</p>
           <p class="metric-subtitle" id="credit-usage-message">₱0.00 available</p>
         </div>
+        <div class="dashboard-card">
+          <div class="card-header">
+            <i class="fas fa-road icon"></i>
+            <span class="card-title">Debt-Free Roadmap</span>
+          </div>
+          <p class="metric-value" id="debt-free-date">--</p>
+          <p class="metric-subtitle">Your estimated debt-free date</p>
+        </div>
       </div>
       <div class="dashboard-group-grid">
         <div class="dashboard-group-card">
@@ -1575,6 +1583,7 @@
     document.getElementById('total-expenses-message').innerText = expenseMessage;
     document.getElementById('savings-rate-message').innerText = savingsMessage;
     document.getElementById('credit-usage-message').innerText = creditMessage;
+    document.getElementById('debt-free-date').innerText = data.debtFreeDate || 'No ongoing installments';
 
     // Personalization
     document.getElementById('welcome-message').innerText = data.welcomeMessage;
