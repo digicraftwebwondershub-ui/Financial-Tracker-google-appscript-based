@@ -653,6 +653,7 @@
       <a href="#" class="nav-link active" data-target="dashboard"><i class="fas fa-chart-line"></i> Dashboard</a>
       <a href="#" class="nav-link" data-target="transactions"><i class="fas fa-exchange-alt"></i> Transactions</a>
       <a href="#" class="nav-link" data-target="cards"><i class="fas fa-credit-card"></i> Cards</a>
+      <a href="#" class="nav-link" data-target="installments"><i class="fas fa-calendar-alt"></i> Installments</a>
       <a href="#" class="nav-link" data-target="goals"><i class="fas fa-bullseye"></i> Goals</a>
       <a href="#" class="nav-link" data-target="reminders"><i class="fas fa-bell"></i> Reminders</a>
     </div>
@@ -762,6 +763,20 @@
         <div class="item-grid" id="card-list"></div>
       </div>
     </div>
+    <!-- Installments Section -->
+    <div id="installments" class="content-section">
+      <div class="modern-card">
+        <div class="section-header-row">
+          <span style="font-weight:600;font-size:1.13rem;display:flex;align-items:center;gap:8px;">
+            <i class="fas fa-calendar-alt"></i> Installment Management
+          </span>
+          <button class="add-btn-black" type="button" onclick="showAddForm('installment')">
+            <i class="fas fa-plus"></i> Add Installment
+          </button>
+        </div>
+        <div class="item-grid" id="installment-list"></div>
+      </div>
+    </div>
     <!-- Goals Section -->
     <div id="goals" class="content-section">
       <div class="modern-card">
@@ -840,6 +855,8 @@
       google.script.run.withSuccessHandler(renderTransactions).getTransactions();
     } else if (activeTab === 'cards') {
       google.script.run.withSuccessHandler(renderCreditCards).getCreditCardData();
+    } else if (activeTab === 'installments') {
+      google.script.run.withSuccessHandler(renderInstallments).getInstallments();
     } else if (activeTab === 'goals') {
       google.script.run.withSuccessHandler(renderGoals).getGoalsData();
     } else if (activeTab === 'reminders') {
@@ -1120,8 +1137,124 @@
           loadPageContent();
         }).addReminder(data);
       };
+    } else if (type === 'installment') {
+      modalTitle.innerText = 'Add Installment';
+      form.innerHTML = `
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="installment-description">Description *</label>
+            <input type="text" id="installment-description" name="description" required>
+          </div>
+          <div class="form-group">
+            <label for="installment-total-amount">Total Amount (₱) *</label>
+            <input type="number" step="0.01" id="installment-total-amount" name="totalAmount" required>
+          </div>
+          <div class="form-group">
+            <label for="installment-downpayment">Downpayment (₱)</label>
+            <input type="number" step="0.01" id="installment-downpayment" name="downpayment">
+          </div>
+          <div class="form-group">
+            <label for="installment-monthly-payment">Monthly Payment (₱) *</label>
+            <input type="number" step="0.01" id="installment-monthly-payment" name="monthlyPayment" required>
+          </div>
+          <div class="form-group">
+            <label for="installment-total-months">Total Months *</label>
+            <input type="number" id="installment-total-months" name="totalMonths" required>
+          </div>
+          <div class="form-group">
+            <label for="installment-start-date">Start Date *</label>
+            <input type="date" id="installment-start-date" name="startDate" required>
+          </div>
+          <div class="form-group">
+            <label for="installment-linked-card">Linked Credit Card</label>
+            <select id="installment-linked-card" name="linkedCreditCardId"></select>
+          </div>
+          <div class="form-group full-width">
+            <button type="submit" class="add-btn-black">Submit</button>
+          </div>
+        </div>
+      `;
+      google.script.run.withSuccessHandler(populateCardOptionsForInstallment).getCardsForDropdown();
+      form.onsubmit = (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        google.script.run.withSuccessHandler(response => {
+          alert(response.message);
+          form.reset();
+          closeModal();
+          loadPageContent();
+        }).addInstallment(data);
+      };
     }
     modal.style.display = 'block';
+  }
+
+  function showInstallmentStatement(installment) {
+    const modal = document.getElementById('add-edit-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const form = document.getElementById('modal-form');
+    form.innerHTML = '';
+    form.onsubmit = null;
+
+    modalTitle.innerText = `Statement for ${installment.description}`;
+
+    const totalPaid = (installment.totalMonths - installment.monthsRemaining) * installment.monthlyPayment + installment.downpayment;
+    const remainingBalance = installment.monthlyPayment * installment.monthsRemaining;
+    const nextDueDate = new Date();
+    nextDueDate.setDate(new Date(installment.startDate).getDate());
+    nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+
+    form.innerHTML = `
+      <div class="statement-summary">
+        <div class="statement-row">
+          <span>Total Paid:</span>
+          <strong>₱${totalPaid.toLocaleString(undefined, {minimumFractionDigits: 2})}</strong>
+        </div>
+        <div class="statement-row">
+          <span>Remaining Balance:</span>
+          <strong>₱${remainingBalance.toLocaleString(undefined, {minimumFractionDigits: 2})}</strong>
+        </div>
+        <hr>
+        <div class="statement-row">
+          <span>Next Due Date:</span>
+          <span>${nextDueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+        </div>
+        <div class="statement-row">
+          <span>Monthly Payment:</span>
+          <span>₱${installment.monthlyPayment.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+        </div>
+        <div class="statement-row">
+          <span>Completion Estimate:</span>
+          <span>${new Date(installment.endDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+        </div>
+      </div>
+      <style>
+        .statement-summary {
+          display: flex;
+          flex-direction: column;
+          gap: 15px;
+          font-size: 1.1rem;
+        }
+        .statement-row {
+          display: flex;
+          justify-content: space-between;
+        }
+      </style>
+    `;
+
+    modal.style.display = 'block';
+  }
+
+  function populateCardOptionsForInstallment(cards) {
+    const cardSelect = document.getElementById('installment-linked-card');
+    cardSelect.innerHTML = '<option value="">Select a card</option>';
+    cards.forEach(card => {
+      const option = document.createElement('option');
+      option.value = card.id;
+      option.textContent = card.name;
+      cardSelect.appendChild(option);
+    });
   }
 
   function closeModal() {
@@ -1316,6 +1449,86 @@
         loadPageContent();
       }).deleteTransaction(row);
     }
+  }
+
+  function editInstallment(installment) {
+    const modal = document.getElementById('add-edit-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const form = document.getElementById('modal-form');
+    form.innerHTML = '';
+    form.onsubmit = null;
+
+    modalTitle.innerText = 'Edit Installment';
+    form.innerHTML = `
+      <input type="hidden" name="row" value="${installment.row}">
+      <input type="hidden" name="installmentId" value="${installment.installmentId}">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="installment-description">Description *</label>
+          <input type="text" id="installment-description" name="description" value="${installment.description}" required>
+        </div>
+        <div class="form-group">
+          <label for="installment-total-amount">Total Amount (₱) *</label>
+          <input type="number" step="0.01" id="installment-total-amount" name="totalAmount" value="${installment.totalAmount}" required>
+        </div>
+        <div class="form-group">
+          <label for="installment-downpayment">Downpayment (₱)</label>
+          <input type="number" step="0.01" id="installment-downpayment" name="downpayment" value="${installment.downpayment}">
+        </div>
+        <div class="form-group">
+          <label for="installment-monthly-payment">Monthly Payment (₱) *</label>
+          <input type="number" step="0.01" id="installment-monthly-payment" name="monthlyPayment" value="${installment.monthlyPayment}" required>
+        </div>
+        <div class="form-group">
+          <label for="installment-total-months">Total Months *</label>
+          <input type="number" id="installment-total-months" name="totalMonths" value="${installment.totalMonths}" required>
+        </div>
+        <div class="form-group">
+          <label for="installment-months-remaining">Months Remaining *</label>
+          <input type="number" id="installment-months-remaining" name="monthsRemaining" value="${installment.monthsRemaining}" required>
+        </div>
+        <div class="form-group">
+          <label for="installment-start-date">Start Date *</label>
+          <input type="date" id="installment-start-date" name="startDate" required>
+        </div>
+        <div class="form-group">
+          <label for="installment-linked-card">Linked Credit Card</label>
+          <select id="installment-linked-card" name="linkedCreditCardId"></select>
+        </div>
+        <div class="form-group">
+          <label for="installment-status">Status</label>
+          <select id="installment-status" name="status">
+            <option value="Ongoing">Ongoing</option>
+            <option value="Paid Off">Paid Off</option>
+          </select>
+        </div>
+        <div class="form-group full-width">
+          <button type="submit" class="add-btn-black">Update</button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('installment-start-date').valueAsDate = new Date(installment.startDate);
+    document.getElementById('installment-status').value = installment.status;
+
+    google.script.run.withSuccessHandler(cards => {
+      populateCardOptionsForInstallment(cards);
+      document.getElementById('installment-linked-card').value = installment.linkedCreditCardId;
+    }).getCardsForDropdown();
+
+    form.onsubmit = (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData.entries());
+      google.script.run.withSuccessHandler(response => {
+        alert(response.message);
+        form.reset();
+        closeModal();
+        loadPageContent();
+      }).editInstallment(data);
+    };
+
+    modal.style.display = 'block';
   }
 
   function renderDashboard(data) {
@@ -1639,6 +1852,62 @@
         <div class="item-card-meta" style="margin-top: 10px; font-style: italic;">${reminder.feedback}</div>
       `;
       reminderList.appendChild(reminderDiv);
+    });
+  }
+
+  function renderInstallments(installments) {
+    const installmentList = document.getElementById('installment-list');
+    installmentList.innerHTML = '';
+    if (installments.length === 0) {
+      installmentList.innerHTML = '<p style="text-align: center; color: var(--light-text);">No installments added yet. Click "Add Installment" to get started.</p>';
+      return;
+    }
+    installments.forEach(installment => {
+      const progress = Math.round(((installment.totalMonths - installment.monthsRemaining) / installment.totalMonths) * 100);
+      const remainingBalance = installment.monthlyPayment * installment.monthsRemaining;
+
+      let statusColor = '#181818'; // Default for Ongoing
+      if (installment.status.toLowerCase() === 'paid off') {
+        statusColor = 'var(--success-color)';
+      }
+
+      let monthsColor = 'var(--success-color)';
+      if (installment.monthsRemaining <= 3) {
+        monthsColor = 'var(--warning-color)';
+      }
+      if (installment.monthsRemaining <= 1) {
+        monthsColor = 'var(--danger-color)';
+      }
+
+      const installmentDiv = document.createElement('div');
+      installmentDiv.className = 'item-card';
+      installmentDiv.innerHTML = `
+        <div class="item-card-title-row">
+          <span class="item-card-title">${installment.description}</span>
+          <span class="item-card-pill" style="background-color: ${statusColor}">${installment.status}</span>
+        </div>
+        <div class="item-card-row">
+          <span>Remaining: ₱${remainingBalance.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+          <span style="margin-left:auto;">Monthly: ₱${installment.monthlyPayment.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+        </div>
+        <div class="item-card-progress">
+          <div class="item-card-progress-inner" style="width:${progress}%;"></div>
+        </div>
+        <div class="item-card-meta">
+          <span style="color:${monthsColor}">${installment.monthsRemaining} of ${installment.totalMonths} months remaining</span>
+        </div>
+        <div class="item-card-meta" style="margin-top: 5px;">
+          Ends on: ${new Date(installment.endDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+        </div>
+        <div class="item-card-meta" style="margin-top: 10px; font-style: italic;">
+          Linked to Card ID: ${installment.linkedCreditCardId}
+        </div>
+        <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 5px;">
+          <button class="edit-btn" title="View Statement" onclick='showInstallmentStatement(${JSON.stringify(installment)})'><i class="fas fa-file-invoice-dollar"></i></button>
+          <button class="edit-btn" title="Edit" onclick='editInstallment(${JSON.stringify(installment)})'><i class="fas fa-edit"></i></button>
+        </div>
+      `;
+      installmentList.appendChild(installmentDiv);
     });
   }
 </script>

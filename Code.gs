@@ -1,9 +1,35 @@
 // Function to serve the HTML webpage
 function doGet() {
   createDailyTrigger();
+  createInstallmentsSheet();
   return HtmlService.createHtmlOutputFromFile('index')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0');
+}
+
+// Function to create the "Installments" sheet if it doesn't exist
+function createInstallmentsSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetName = "Installments";
+  let sheet = ss.getSheetByName(sheetName);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    const headers = [
+      "Installment_ID",
+      "Description",
+      "Total_Amount",
+      "Downpayment",
+      "Monthly_Payment",
+      "Total_Months",
+      "Months_Remaining",
+      "Start_Date",
+      "End_Date",
+      "Linked_Credit_Card_ID",
+      "Status"
+    ];
+    sheet.appendRow(headers);
+  }
 }
 
 // Function to get data for the Dashboard
@@ -346,8 +372,26 @@ function getCreditCardData() {
 
   const cardData = cardSheet.getDataRange().getValues();
   const transactionData = transactionSheet.getDataRange().getValues();
+  const installmentSheet = ss.getSheetByName("Installments");
   const cards = [];
   const today = new Date();
+
+  // Calculate outstanding installment balances for each card
+  const installmentBalances = {};
+  if (installmentSheet) {
+    const installmentData = installmentSheet.getDataRange().getValues();
+    for (let i = 1; i < installmentData.length; i++) {
+      const cardId = installmentData[i][9];
+      const status = installmentData[i][10];
+      if (cardId && status === 'Ongoing') {
+        const remainingBalance = parseFloat(installmentData[i][4]) * parseInt(installmentData[i][6]);
+        if (!installmentBalances[cardId]) {
+          installmentBalances[cardId] = 0;
+        }
+        installmentBalances[cardId] += remainingBalance;
+      }
+    }
+  }
 
   // Pre-calculate transaction totals and find the last payment for each card
   const cardTransactionTotals = {};
@@ -380,7 +424,9 @@ function getCreditCardData() {
   
   for (let i = 1; i < cardData.length; i++) {
     const cardId = cardData[i][0];
-    const balance = cardTransactionTotals[cardId] || 0;
+    const transactionBalance = cardTransactionTotals[cardId] || 0;
+    const installmentBalance = installmentBalances[cardId] || 0;
+    const balance = transactionBalance + installmentBalance;
     
     const limit = cardData[i][3];
     const available = limit - balance;
@@ -612,13 +658,151 @@ function createDailyTrigger() {
   // Deletes all existing triggers to avoid duplicates
   const triggers = ScriptApp.getProjectTriggers();
   for (const trigger of triggers) {
-    ScriptApp.deleteTrigger(trigger);
+    if (trigger.getHandlerFunction() === 'updateDaysLeft' || trigger.getHandlerFunction() === 'generateMonthlyInstallmentTransactions') {
+      ScriptApp.deleteTrigger(trigger);
+    }
   }
 
-  // Creates a new trigger
+  // Creates a new trigger for daily updates
   ScriptApp.newTrigger('updateDaysLeft')
       .timeBased()
       .everyDays(1)
       .atHour(1)
       .create();
+
+  // Creates a new trigger for monthly installment transactions
+  ScriptApp.newTrigger('generateMonthlyInstallmentTransactions')
+      .timeBased()
+      .onMonthDay(1)
+      .atHour(2)
+      .create();
+}
+
+// Function to generate monthly installment transactions
+function generateMonthlyInstallmentTransactions() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const installmentSheet = ss.getSheetByName("Installments");
+  const transactionSheet = ss.getSheetByName("Transactions");
+  const today = new Date();
+
+  if (!installmentSheet) return;
+
+  const data = installmentSheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    const status = data[i][10];
+    const monthsRemaining = parseInt(data[i][6]);
+    const startDate = new Date(data[i][7]);
+
+    // Only process ongoing installments that have started
+    if (status === 'Ongoing' && monthsRemaining > 0 && today >= startDate) {
+      const monthlyPayment = parseFloat(data[i][4]);
+      const description = `Installment: ${data[i][1]}`;
+      const linkedCreditCardId = data[i][9];
+
+      // Add a new transaction
+      const newTransaction = [
+        generateUniqueId(),
+        today,
+        'Expense',
+        'Installment',
+        monthlyPayment,
+        description,
+        'Credit Card',
+        '', // Account Name
+        linkedCreditCardId,
+        '', // Goal ID
+        data[i][0] // Installment_ID
+      ];
+      transactionSheet.appendRow(newTransaction);
+
+      // Update months remaining and status
+      const newMonthsRemaining = monthsRemaining - 1;
+      installmentSheet.getRange(i + 1, 7).setValue(newMonthsRemaining);
+      if (newMonthsRemaining === 0) {
+        installmentSheet.getRange(i + 1, 11).setValue('Paid Off');
+      }
+    }
+  }
+}
+
+// Function to add an installment
+function addInstallment(formData) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Installments");
+  const startDate = new Date(formData.startDate);
+  const totalMonths = parseInt(formData.totalMonths);
+  const endDate = new Date(startDate.setMonth(startDate.getMonth() + totalMonths));
+
+  const rowData = [
+    generateUniqueId(),
+    formData.description,
+    parseFloat(formData.totalAmount),
+    parseFloat(formData.downpayment),
+    parseFloat(formData.monthlyPayment),
+    totalMonths,
+    totalMonths, // Initially, months remaining is total months
+    new Date(formData.startDate),
+    endDate,
+    formData.linkedCreditCardId,
+    'Ongoing' // Default status
+  ];
+  sheet.appendRow(rowData);
+  return { status: "success", message: "Installment added successfully!" };
+}
+
+// Function to get all installments
+function getInstallments() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Installments");
+  if (!sheet) {
+    return []; // Return empty array if sheet doesn't exist
+  }
+  const data = sheet.getDataRange().getValues();
+  const installments = [];
+  for (let i = 1; i < data.length; i++) {
+    installments.push({
+      row: i + 1,
+      installmentId: data[i][0],
+      description: data[i][1],
+      totalAmount: data[i][2],
+      downpayment: data[i][3],
+      monthlyPayment: data[i][4],
+      totalMonths: data[i][5],
+      monthsRemaining: data[i][6],
+      startDate: new Date(data[i][7]).toISOString(),
+      endDate: new Date(data[i][8]).toISOString(),
+      linkedCreditCardId: data[i][9],
+      status: data[i][10]
+    });
+  }
+  return installments;
+}
+
+// Function to handle edit installment data
+function editInstallment(formData) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Installments");
+  const row = parseInt(formData.row);
+
+  if (row > 0) {
+    const startDate = new Date(formData.startDate);
+    const totalMonths = parseInt(formData.totalMonths);
+    const endDate = new Date(startDate.setMonth(startDate.getMonth() + totalMonths));
+
+    sheet.getRange(row, 1, 1, sheet.getLastColumn()).setValues([[
+      formData.installmentId,
+      formData.description,
+      parseFloat(formData.totalAmount),
+      parseFloat(formData.downpayment),
+      parseFloat(formData.monthlyPayment),
+      totalMonths,
+      parseInt(formData.monthsRemaining),
+      new Date(formData.startDate),
+      endDate,
+      formData.linkedCreditCardId,
+      formData.status
+    ]]);
+    return { status: "success", message: "Installment updated successfully!" };
+  }
+  return { status: "error", message: "Invalid row number." };
 }
