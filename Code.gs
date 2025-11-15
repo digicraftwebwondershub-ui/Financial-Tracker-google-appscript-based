@@ -156,11 +156,7 @@ function addTransaction(formData) {
   transactionSheet.appendRow(newRowData);
 
   // 2. Update Linked Sheets
-  if (formData.type === 'Expense' && formData.paymentMethod === 'Credit Card' && formData.cardId) {
-    updateCardBalance(formData.cardId, amount);
-  } else if (formData.category === 'Credit Card Payment' && formData.cardId) {
-    updateCardBalance(formData.cardId, -amount, true);
-  } else if (formData.type === 'Savings' && formData.goalId) {
+  if (formData.type === 'Savings' && formData.goalId) {
     updateGoalProgress(formData.goalId, amount);
   }
 
@@ -184,21 +180,13 @@ function updateTransaction(newFormData) {
   };
 
   // 2. Revert the old transaction's impact
-  if (oldTransaction.type === 'Expense' && oldTransaction.paymentMethod === 'Credit Card' && oldTransaction.cardId) {
-    updateCardBalance(oldTransaction.cardId, -oldTransaction.amount);
-  } else if (oldTransaction.category === 'Credit Card Payment' && oldTransaction.cardId) {
-    updateCardBalance(oldTransaction.cardId, oldTransaction.amount, true, true);
-  } else if (oldTransaction.type === 'Savings' && oldTransaction.goalId) {
+  if (oldTransaction.type === 'Savings' && oldTransaction.goalId) {
     updateGoalProgress(oldTransaction.goalId, -oldTransaction.amount);
   }
 
   // 3. Apply the new transaction's impact
   const newAmount = parseFloat(newFormData.amount);
-  if (newFormData.type === 'Expense' && newFormData.paymentMethod === 'Credit Card' && newFormData.cardId) {
-    updateCardBalance(newFormData.cardId, newAmount);
-  } else if (newFormData.category === 'Credit Card Payment' && newFormData.cardId) {
-    updateCardBalance(newFormData.cardId, -newAmount, true);
-  } else if (newFormData.type === 'Savings' && newFormData.goalId) {
+  if (newFormData.type === 'Savings' && newFormData.goalId) {
     updateGoalProgress(newFormData.goalId, newAmount);
   }
   
@@ -258,43 +246,13 @@ function deleteTransaction(row) {
   };
 
   // 2. Revert the transaction's impact
-  if (transaction.type === 'Expense' && transaction.paymentMethod === 'Credit Card' && transaction.cardId) {
-    updateCardBalance(transaction.cardId, -transaction.amount);
-  } else if (transaction.category === 'Credit Card Payment' && transaction.cardId) {
-    updateCardBalance(transaction.cardId, transaction.amount, true, true);
-  } else if (transaction.type === 'Savings' && transaction.goalId) {
+  if (transaction.type === 'Savings' && transaction.goalId) {
     updateGoalProgress(transaction.goalId, -transaction.amount);
   }
 
   // 3. Delete the row
   sheet.deleteRow(row);
   return { status: 'success', message: 'Transaction deleted successfully!' };
-}
-
-// Helper function to update card balance
-function updateCardBalance(cardId, amount, isPayment = false, isReversal = false) {
-  const cardSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Credit Cards");
-  const data = cardSheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === cardId) {
-      const currentBalance = data[i][4];
-      const newBalance = currentBalance + amount;
-      cardSheet.getRange(i + 1, 5).setValue(newBalance);
-      
-      if(isPayment) {
-        if (!isReversal) {
-           cardSheet.getRange(i + 1, 6).setValue(Math.abs(amount)); // Last Payment
-           cardSheet.getRange(i + 1, 8).setValue(new Date()); // Last Payment Date
-        } else {
-           // If reversing a payment, clear last payment details. 
-           // A more robust solution might find the *previous* payment.
-           cardSheet.getRange(i + 1, 6).setValue('');
-           cardSheet.getRange(i + 1, 8).setValue('');
-        }
-      }
-      break;
-    }
-  }
 }
 
 // Helper function to update goal progress
@@ -368,19 +326,55 @@ function deleteCreditCard(row) {
 // Updated getCreditCardData to include status
 function getCreditCardData() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName("Credit Cards");
-  const data = sheet.getDataRange().getValues();
+  const cardSheet = ss.getSheetByName("Credit Cards");
+  const transactionSheet = ss.getSheetByName("Transactions");
+
+  const cardData = cardSheet.getDataRange().getValues();
+  const transactionData = transactionSheet.getDataRange().getValues();
   const cards = [];
   const today = new Date();
+
+  // Pre-calculate transaction totals and find the last payment for each card
+  const cardTransactionTotals = {};
+  const lastPayments = {};
+  for (let i = 1; i < transactionData.length; i++) {
+    const cardId = transactionData[i][8];
+    if (cardId) {
+      if (!cardTransactionTotals[cardId]) {
+        cardTransactionTotals[cardId] = 0;
+      }
+      const type = String(transactionData[i][2]).trim();
+      const category = String(transactionData[i][3]).trim();
+      const amount = parseFloat(transactionData[i][4]);
+
+      if (category.toLowerCase() === 'credit card payment') {
+        cardTransactionTotals[cardId] -= amount;
+
+        const paymentDate = new Date(transactionData[i][1]);
+        if (!lastPayments[cardId] || paymentDate > lastPayments[cardId].date) {
+          lastPayments[cardId] = {
+            amount: amount,
+            date: paymentDate
+          };
+        }
+      } else if (type.toLowerCase() === 'expense') {
+        cardTransactionTotals[cardId] += amount;
+      }
+    }
+  }
   
-  for (let i = 1; i < data.length; i++) {
-    const balance = data[i][4];
-    const limit = data[i][3];
+  for (let i = 1; i < cardData.length; i++) {
+    const cardId = cardData[i][0];
+    const startingBalance = parseFloat(cardData[i][4]) || 0;
+    const transactionTotal = cardTransactionTotals[cardId] || 0;
+    const balance = startingBalance + transactionTotal;
+
+    const limit = cardData[i][3];
     const available = limit - balance;
     const utilization = (balance / limit) * 100;
-    const dueDate = new Date(data[i][8]);
+    const dueDate = new Date(cardData[i][8]);
     const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
-    
+
     let status = "";
     if (daysUntilDue < 0 && balance > 0) {
       status = "Overdue";
@@ -389,11 +383,12 @@ function getCreditCardData() {
     } else {
       status = "Good";
     }
-    
-    const lastPayment = data[i][5] || 0;
-    const lastPaymentDate = data[i][7] ? Utilities.formatDate(new Date(data[i][7]), Session.getScriptTimeZone(), "MMM dd, yyyy") : 'N/A';
-    const bankName = data[i][2] || '';
-    const statementDate = data[i][9] ? Utilities.formatDate(new Date(data[i][9]), Session.getScriptTimeZone(), "MMM dd") : 'N/A';
+
+    const lastPaymentInfo = lastPayments[cardId];
+    const lastPayment = lastPaymentInfo ? lastPaymentInfo.amount : 0;
+    const lastPaymentDate = lastPaymentInfo ? Utilities.formatDate(lastPaymentInfo.date, Session.getScriptTimeZone(), "MMM dd, yyyy") : 'N/A';
+    const bankName = cardData[i][2] || '';
+    const statementDate = cardData[i][9] ? Utilities.formatDate(new Date(cardData[i][9]), Session.getScriptTimeZone(), "MMM dd") : 'N/A';
 
     let insight = "";
     if (daysUntilDue > 0 && daysUntilDue <= 5) {
@@ -407,12 +402,12 @@ function getCreditCardData() {
 
     cards.push({
       row: i + 1,
-      cardId: data[i][0],
-      name: data[i][1],
+      cardId: cardId,
+      name: cardData[i][1],
       limit: limit,
       balance: balance,
       available: available,
-      apr: data[i][6],
+      apr: cardData[i][6],
       dueDate: Utilities.formatDate(dueDate, Session.getScriptTimeZone(), "MMM dd, yyyy"),
       lastPayment: lastPayment,
       lastPaymentDate: lastPaymentDate,
