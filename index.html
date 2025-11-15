@@ -805,8 +805,14 @@
 
 <script>
   let spendingChart, incomeExpenseChart;
+  let referenceData = {};
+
   document.addEventListener('DOMContentLoaded', () => {
-    loadPageContent();
+    google.script.run.withSuccessHandler(data => {
+      referenceData = data;
+      loadPageContent();
+    }).getReferenceData();
+
     const themeSwitch = document.getElementById('theme-switch');
     themeSwitch.addEventListener('change', () => {
       if (themeSwitch.checked) {
@@ -854,20 +860,15 @@
         <div class="form-grid">
           <div class="form-group">
             <label for="transaction-type">Transaction Type *</label>
-            <select id="transaction-type" name="type" required>
-              <option value="">Select type</option>
-              <option value="Income">Income</option>
-              <option value="Expense">Expense</option>
-              <option value="Savings">Savings</option>
-            </select>
+            <select id="transaction-type" name="type" required></select>
           </div>
           <div class="form-group">
             <label for="transaction-payment-method">Payment Method</label>
-            <input type="text" id="transaction-payment-method" name="paymentMethod" placeholder="e.g., Credit Card, GCash">
+            <select id="transaction-payment-method" name="paymentMethod"></select>
           </div>
           <div class="form-group">
             <label for="transaction-account-name">Account Name</label>
-            <input type="text" id="transaction-account-name" name="accountName" placeholder="e.g., BPI, Personal Wallet">
+            <select id="transaction-account-name" name="accountName"></select>
           </div>
           <div class="form-group" id="card-selection-container" style="display: none;">
             <label for="transaction-card">Credit Card</label>
@@ -901,6 +902,10 @@
         </div>
       `;
       document.getElementById('transaction-date').valueAsDate = new Date();
+
+      populateSelectWithOptions('transaction-type', referenceData['TRANSACTION TYPE']);
+      populateSelectWithOptions('transaction-payment-method', referenceData['PAYMENT METHOD']);
+      populateSelectWithOptions('transaction-account-name', referenceData['ACCOUNT NAME']);
       updateCategoryOptions();
       
       const typeSelect = document.getElementById('transaction-type');
@@ -953,7 +958,7 @@
         <div class="form-grid">
           <div class="form-group">
             <label for="card-name">Card Name *</label>
-            <input type="text" id="card-name" name="cardName" required>
+            <select id="card-name" name="cardName" required></select>
           </div>
           <div class="form-group">
             <label for="card-limit">Credit Limit (₱) *</label>
@@ -981,7 +986,7 @@
           </div>
           <div class="form-group">
             <label for="card-bank-name">Bank Name</label>
-            <input type="text" id="card-bank-name" name="bankName">
+            <select id="card-bank-name" name="bankName"></select>
           </div>
           <div class="form-group">
             <label for="card-statement-date">Statement Date</label>
@@ -992,6 +997,10 @@
           </div>
         </div>
       `;
+
+      populateSelectWithOptions('card-name', referenceData['CREDIT CARD NAME']);
+      populateSelectWithOptions('card-bank-name', referenceData['BANK NAME']);
+
       form.onsubmit = (e) => {
         e.preventDefault();
         const formData = new FormData(form);
@@ -1040,6 +1049,9 @@
           </div>
         </div>
       `;
+
+      populateSelectWithOptions('reminder-payment-channel', referenceData['PAYMENT CHANNEL']);
+
       form.onsubmit = (e) => {
         e.preventDefault();
         const formData = new FormData(form);
@@ -1090,7 +1102,7 @@
           </div>
           <div class="form-group full-width">
             <label for="reminder-payment-channel">Payment Channel</label>
-            <input type="text" id="reminder-payment-channel" name="paymentChannel">
+            <select id="reminder-payment-channel" name="paymentChannel"></select>
           </div>
           <div class="form-group full-width">
             <button type="submit" class="add-btn-black">Submit</button>
@@ -1127,6 +1139,17 @@
     });
   }
 
+  function populateSelectWithOptions(selectId, options) {
+    const select = document.getElementById(selectId);
+    select.innerHTML = `<option value="">Select ${select.name || 'option'}</option>`;
+    options.forEach(optionValue => {
+      const option = document.createElement('option');
+      option.value = optionValue;
+      option.textContent = optionValue;
+      select.appendChild(option);
+    });
+  }
+
   function populateGoalOptions(goals) {
     const goalSelect = document.getElementById('transaction-goal');
     goalSelect.innerHTML = '<option value="">Select a goal</option>';
@@ -1138,32 +1161,19 @@
     });
   }
 
-  // Dynamic Category Options for Transaction Type
-  const categoryOptions = {
-    Income: [
-      "Salary", "Business", "Freelancing", "Allowance", "Bonus", "Investment", "Gifts", "Other Income"
-    ],
-    Expense: [
-      "Food", "Groceries", "Transportation", "Utilities", "Rent", "Mortgage", "Personal Loan",
-      "Housing Loan", "Car Loan", "Leisure", "Travel", "Shopping", "Entertainment", "Medical",
-      "Insurance", "Education", "Credit Card Payment", "Charity", "Miscellaneous"
-    ],
-    Savings: [
-      "Emergency Fund", "Retirement", "Vacation", "Investment Fund", "Other Savings"
-    ]
-  };
   function updateCategoryOptions() {
     const type = document.getElementById('transaction-type').value;
     const categorySelect = document.getElementById('transaction-category');
     categorySelect.innerHTML = '<option value="">Select category</option>';
-    if (type && categoryOptions[type]) {
-      categoryOptions[type].forEach(cat => {
-        const option = document.createElement('option');
-        option.value = cat;
-        option.textContent = cat;
-        categorySelect.appendChild(option);
-      });
+    let options = [];
+    if (type.toLowerCase() === 'income' && referenceData['INCOME CATEGORIES']) {
+      options = referenceData['INCOME CATEGORIES'];
+    } else if (type.toLowerCase() === 'expense' && referenceData['EXPENSE CATEGORIES']) {
+      options = referenceData['EXPENSE CATEGORIES'];
+    } else if (type.toLowerCase() === 'savings' && referenceData['SAVINGS CATEGORY']) {
+      options = referenceData['SAVINGS CATEGORY'];
     }
+    populateSelectWithOptions('transaction-category', options);
   }
 
   let allTransactions = [];

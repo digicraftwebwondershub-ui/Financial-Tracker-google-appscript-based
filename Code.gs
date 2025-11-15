@@ -11,6 +11,21 @@ function generateUniqueId() {
   return Utilities.getUuid();
 }
 
+function getReferenceData() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Reference Data");
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0].map(header => header.trim());
+  const referenceData = {};
+
+  headers.forEach((header, index) => {
+    if (header) {
+      referenceData[header] = data.slice(1).map(row => String(row[index]).trim()).filter(String);
+    }
+  });
+  return referenceData;
+}
+
 function getDashboardData() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const transactionSheet = ss.getSheetByName("Transactions");
