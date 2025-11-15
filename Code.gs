@@ -155,10 +155,13 @@ function getDashboardData() {
     "💡 Tip of the week: Try a no-spend weekend challenge!"
   ];
   const weeklyTip = tips[Math.floor(Math.random() * tips.length)];
-  const debtFreeDate = getDebtFreeDate();
+  const debtRoadmapInfo = getDebtRoadmapInfo();
 
   return {
-    debtFreeDate: debtFreeDate ? Utilities.formatDate(debtFreeDate, Session.getScriptTimeZone(), "MMM dd, yyyy") : null,
+    debtRoadmapInfo: {
+      startDate: debtRoadmapInfo.startDate ? debtRoadmapInfo.startDate.toISOString() : null,
+      endDate: debtRoadmapInfo.endDate ? debtRoadmapInfo.endDate.toISOString() : null
+    },
     netIncome: totalIncome - totalExpenses,
     totalExpenses: totalExpenses,
     savingsRate: (totalSavings / totalIncome) * 100 || 0,
@@ -353,6 +356,33 @@ function editCreditCard(formData) {
     return { status: "success", message: "Credit card updated successfully!" };
   }
   return { status: "error", message: "Invalid row number." };
+}
+
+// Function to get debt roadmap information
+function getDebtRoadmapInfo() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Installments");
+  if (!sheet) {
+    return { startDate: null, endDate: null };
+  }
+  const data = sheet.getDataRange().getValues();
+  let minStartDate = null;
+  let maxEndDate = null;
+
+  for (let i = 1; i < data.length; i++) {
+    const status = data[i][10];
+    if (status === 'Ongoing') {
+      const startDate = new Date(data[i][7]);
+      const endDate = new Date(data[i][8]);
+      if (minStartDate === null || startDate < minStartDate) {
+        minStartDate = startDate;
+      }
+      if (maxEndDate === null || endDate > maxEndDate) {
+        maxEndDate = endDate;
+      }
+    }
+  }
+  return { startDate: minStartDate, endDate: maxEndDate };
 }
 
 // Function to calculate the debt-free date
