@@ -364,7 +364,7 @@ function getCreditCardData() {
 
       if (category.toLowerCase() === 'credit card payment') {
         cardTransactionTotals[cardId] -= amount;
-
+        
         const paymentDate = new Date(transactionData[i][1]);
         if (!lastPayments[cardId] || paymentDate > lastPayments[cardId].date) {
           lastPayments[cardId] = {
@@ -381,7 +381,7 @@ function getCreditCardData() {
   for (let i = 1; i < cardData.length; i++) {
     const cardId = cardData[i][0];
     const balance = cardTransactionTotals[cardId] || 0;
-
+    
     const limit = cardData[i][3];
     const available = limit - balance;
     const utilization = (balance / limit) * 100;
