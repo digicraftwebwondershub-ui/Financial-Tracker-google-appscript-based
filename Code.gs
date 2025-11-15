@@ -228,7 +228,7 @@ function getTransactions() {
     transactions.push({
       row: i + 1, // Add row number for editing/deleting
       transactionId: data[i][0],
-      date: new Date(data[i][1]),
+      date: new Date(data[i][1]).toISOString(),
       type: data[i][2],
       category: data[i][3],
       amount: data[i][4],
