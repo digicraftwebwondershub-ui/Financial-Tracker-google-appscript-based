@@ -904,6 +904,7 @@
       updateCategoryOptions();
       
       const typeSelect = document.getElementById('transaction-type');
+      const categorySelect = document.getElementById('transaction-category');
       const paymentMethodInput = document.getElementById('transaction-payment-method');
       const cardContainer = document.getElementById('card-selection-container');
       const goalContainer = document.getElementById('goal-selection-container');
@@ -915,6 +916,15 @@
           google.script.run.withSuccessHandler(populateGoalOptions).getGoalsForDropdown();
         } else {
           goalContainer.style.display = 'none';
+        }
+      });
+
+      categorySelect.addEventListener('change', () => {
+        if (categorySelect.value === 'Credit Card Payment') {
+          cardContainer.style.display = 'block';
+          google.script.run.withSuccessHandler(populateCardOptions).getCardsForDropdown();
+        } else if (paymentMethodInput.value.toLowerCase() !== 'credit card') {
+          cardContainer.style.display = 'none';
         }
       });
 
