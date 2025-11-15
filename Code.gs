@@ -375,7 +375,7 @@ function getCreditCardData() {
   const installmentSheet = ss.getSheetByName("Installments");
   const cards = [];
   const today = new Date();
-
+  
   // Calculate outstanding installment balances for each card
   const installmentBalances = {};
   if (installmentSheet) {
