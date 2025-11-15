@@ -327,6 +327,25 @@
       font-size: 0.97rem;
       margin-top: 5px;
     }
+    .item-card-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .item-card .edit-btn {
+      background: transparent;
+      border: none;
+      color: #b5b5b5;
+      font-size: 1.05rem;
+      cursor: pointer;
+      border-radius: 6px;
+      padding: 2px 7px;
+      transition: background 0.18s, color 0.18s;
+    }
+    .item-card .edit-btn:hover {
+      color: #007bff;
+      background: #e5f0ff;
+    }
 
     /* Add Button top right of section header (BLACK) */
     .section-header-row, .form-section-header-row {
@@ -1884,7 +1903,11 @@
       installmentDiv.innerHTML = `
         <div class="item-card-title-row">
           <span class="item-card-title">${installment.description}</span>
-          <span class="item-card-pill" style="background-color: ${statusColor}">${installment.status}</span>
+          <div class="item-card-actions">
+            <span class="item-card-pill" style="background-color: ${statusColor}">${installment.status}</span>
+            <button class="edit-btn" title="View Statement" onclick='showInstallmentStatement(${JSON.stringify(installment)})'><i class="fas fa-file-invoice-dollar"></i></button>
+            <button class="edit-btn" title="Edit" onclick='editInstallment(${JSON.stringify(installment)})'><i class="fas fa-edit"></i></button>
+          </div>
         </div>
         <div class="item-card-row">
           <span>Remaining: ₱${remainingBalance.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
@@ -1901,10 +1924,6 @@
         </div>
         <div class="item-card-meta" style="margin-top: 10px; font-style: italic;">
           Linked to Card ID: ${installment.linkedCreditCardId}
-        </div>
-        <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 5px;">
-          <button class="edit-btn" title="View Statement" onclick='showInstallmentStatement(${JSON.stringify(installment)})'><i class="fas fa-file-invoice-dollar"></i></button>
-          <button class="edit-btn" title="Edit" onclick='editInstallment(${JSON.stringify(installment)})'><i class="fas fa-edit"></i></button>
         </div>
       `;
       installmentList.appendChild(installmentDiv);
