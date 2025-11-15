@@ -1865,7 +1865,7 @@
     installments.forEach(installment => {
       const progress = Math.round(((installment.totalMonths - installment.monthsRemaining) / installment.totalMonths) * 100);
       const remainingBalance = installment.monthlyPayment * installment.monthsRemaining;
-
+      
       let statusColor = '#181818'; // Default for Ongoing
       if (installment.status.toLowerCase() === 'paid off') {
         statusColor = 'var(--success-color)';
@@ -1878,7 +1878,7 @@
       if (installment.monthsRemaining <= 1) {
         monthsColor = 'var(--danger-color)';
       }
-
+      
       const installmentDiv = document.createElement('div');
       installmentDiv.className = 'item-card';
       installmentDiv.innerHTML = `
