@@ -365,9 +365,7 @@ function getCreditCardData() {
   
   for (let i = 1; i < cardData.length; i++) {
     const cardId = cardData[i][0];
-    const startingBalance = parseFloat(cardData[i][4]) || 0;
-    const transactionTotal = cardTransactionTotals[cardId] || 0;
-    const balance = startingBalance + transactionTotal;
+    const balance = cardTransactionTotals[cardId] || 0;
 
     const limit = cardData[i][3];
     const available = limit - balance;
