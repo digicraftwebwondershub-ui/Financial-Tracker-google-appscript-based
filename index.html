@@ -869,6 +869,14 @@
             <label for="transaction-account-name">Account Name</label>
             <input type="text" id="transaction-account-name" name="accountName" placeholder="e.g., BPI, Personal Wallet">
           </div>
+          <div class="form-group" id="card-selection-container" style="display: none;">
+            <label for="transaction-card">Credit Card</label>
+            <select id="transaction-card" name="cardId"></select>
+          </div>
+          <div class="form-group" id="goal-selection-container" style="display: none;">
+            <label for="transaction-goal">Savings Goal</label>
+            <select id="transaction-goal" name="goalId"></select>
+          </div>
           <div class="form-group">
             <label for="transaction-category">Category *</label>
             <select id="transaction-category" name="category" required>
@@ -894,7 +902,30 @@
       `;
       document.getElementById('transaction-date').valueAsDate = new Date();
       updateCategoryOptions();
-      document.getElementById('transaction-type').addEventListener('change', updateCategoryOptions);
+      
+      const typeSelect = document.getElementById('transaction-type');
+      const paymentMethodInput = document.getElementById('transaction-payment-method');
+      const cardContainer = document.getElementById('card-selection-container');
+      const goalContainer = document.getElementById('goal-selection-container');
+
+      typeSelect.addEventListener('change', () => {
+        updateCategoryOptions();
+        if (typeSelect.value === 'Savings') {
+          goalContainer.style.display = 'block';
+          google.script.run.withSuccessHandler(populateGoalOptions).getGoalsForDropdown();
+        } else {
+          goalContainer.style.display = 'none';
+        }
+      });
+
+      paymentMethodInput.addEventListener('input', () => {
+        if (paymentMethodInput.value.toLowerCase() === 'credit card') {
+          cardContainer.style.display = 'block';
+          google.script.run.withSuccessHandler(populateCardOptions).getCardsForDropdown();
+        } else {
+          cardContainer.style.display = 'none';
+        }
+      });
       form.onsubmit = (e) => {
         e.preventDefault();
         const formData = new FormData(form);
@@ -1075,6 +1106,28 @@
     document.getElementById('add-edit-modal').style.display = 'none';
   }
 
+  function populateCardOptions(cards) {
+    const cardSelect = document.getElementById('transaction-card');
+    cardSelect.innerHTML = '<option value="">Select a card</option>';
+    cards.forEach(card => {
+      const option = document.createElement('option');
+      option.value = card.id;
+      option.textContent = card.name;
+      cardSelect.appendChild(option);
+    });
+  }
+
+  function populateGoalOptions(goals) {
+    const goalSelect = document.getElementById('transaction-goal');
+    goalSelect.innerHTML = '<option value="">Select a goal</option>';
+    goals.forEach(goal => {
+      const option = document.createElement('option');
+      option.value = goal.id;
+      option.textContent = goal.name;
+      goalSelect.appendChild(option);
+    });
+  }
+
   // Dynamic Category Options for Transaction Type
   const categoryOptions = {
     Income: [
@@ -1161,7 +1214,7 @@
     updateCategoryOptions(); // Update categories based on type
     document.querySelector('#modal-form [name="category"]').value = transaction.category;
     document.querySelector('#modal-form [name="amount"]').value = transaction.amount;
-    document.querySelector('#modal-form [name="date"]').value = new Date(transaction.date).toISOString().slice(0, 10);
+    document.querySelector('#modal-form [name="date"]').valueAsDate = new Date(transaction.date);
     document.querySelector('#modal-form [name="description"]').value = transaction.description;
     document.querySelector('#modal-form [name="paymentMethod"]').value = transaction.paymentMethod || '';
     document.querySelector('#modal-form [name="accountName"]').value = transaction.accountName || '';
@@ -1349,6 +1402,7 @@
       const txElem = document.createElement('div');
       txElem.className = 'modern-card';
       const badgeHTML = getBadge(tx);
+      const formattedDate = new Date(tx.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       txElem.innerHTML = `
         <div class="modern-card-header">
           ${icon}<span>${tx.type} - ${tx.category}</span>
@@ -1356,7 +1410,7 @@
           <button class="edit-btn" title="Edit" onclick='editTransaction(${JSON.stringify(tx)})'><i class="fas fa-edit"></i></button>
           <button class="delete-btn" title="Delete" onclick="deleteTransaction(${tx.row})"><i class="fas fa-trash-alt"></i></button>
         </div>
-        <div class="modern-card-row"><span><strong>Date:</strong> ${tx.date}</span></div>
+        <div class="modern-card-row"><span><strong>Date:</strong> ${formattedDate}</span></div>
         <div class="modern-card-row"><span><strong>Amount:</strong> <span class="${typeClass}">₱${parseFloat(tx.amount).toLocaleString(undefined, {minimumFractionDigits: 2})}</span></span></div>
         <div class="modern-card-row"><span><strong>Description:</strong> ${tx.description}</span></div>
         <div class="modern-card-row"><span><strong>Payment Method:</strong> ${tx.paymentMethod || 'N/A'}</span></div>
