@@ -7,6 +7,10 @@ function doGet() {
 }
 
 // Function to get data for the Dashboard
+function generateUniqueId() {
+  return Utilities.getUuid();
+}
+
 function getDashboardData() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const transactionSheet = ss.getSheetByName("Transactions");
@@ -30,19 +34,19 @@ function getDashboardData() {
 
   const transactionData = transactionSheet.getDataRange().getValues();
   for (let i = 1; i < transactionData.length; i++) {
-    const rowDate = new Date(transactionData[i][0]);
+    const rowDate = new Date(transactionData[i][1]);
     const month = rowDate.getMonth();
     const year = rowDate.getFullYear();
 
     if (year === currentYear && month === currentMonth) {
-      if (transactionData[i][1] === "Income") {
-        totalIncome += transactionData[i][3];
-      } else if (transactionData[i][1] === "Expense") {
-        totalExpenses += transactionData[i][3];
-        const category = transactionData[i][2];
-        spendingCategories[category] = (spendingCategories[category] || 0) + transactionData[i][3];
-      } else if (transactionData[i][1] === "Savings") {
-        totalSavings += transactionData[i][3];
+      if (transactionData[i][2] === "Income") {
+        totalIncome += transactionData[i][4];
+      } else if (transactionData[i][2] === "Expense") {
+        totalExpenses += transactionData[i][4];
+        const category = transactionData[i][3];
+        spendingCategories[category] = (spendingCategories[category] || 0) + transactionData[i][4];
+      } else if (transactionData[i][2] === "Savings") {
+        totalSavings += transactionData[i][4];
       }
       const day = Utilities.formatDate(rowDate, Session.getScriptTimeZone(), "MM/dd");
       if (!incomeExpenseTrend.labels.includes(day)) {
@@ -51,16 +55,16 @@ function getDashboardData() {
         incomeExpenseTrend.expenses.push(0);
       }
       const index = incomeExpenseTrend.labels.indexOf(day);
-      if (transactionData[i][1] === "Income") {
-        incomeExpenseTrend.income[index] += transactionData[i][3];
-      } else if (transactionData[i][1] === "Expense") {
-        incomeExpenseTrend.expenses[index] += transactionData[i][3];
+      if (transactionData[i][2] === "Income") {
+        incomeExpenseTrend.income[index] += transactionData[i][4];
+      } else if (transactionData[i][2] === "Expense") {
+        incomeExpenseTrend.expenses[index] += transactionData[i][4];
       }
     } else if (year === prevMonthYear && month === prevMonth) {
-      if (transactionData[i][1] === "Expense") {
-        prevTotalExpenses += transactionData[i][3];
-      } else if (transactionData[i][1] === "Savings") {
-        prevTotalSavings += transactionData[i][3];
+      if (transactionData[i][2] === "Expense") {
+        prevTotalExpenses += transactionData[i][4];
+      } else if (transactionData[i][2] === "Savings") {
+        prevTotalSavings += transactionData[i][4];
       }
     }
   }
@@ -71,8 +75,8 @@ function getDashboardData() {
   let totalBalance = 0;
   const creditCardData = creditCardSheet.getDataRange().getValues();
   for (let i = 1; i < creditCardData.length; i++) {
-    totalBalance += creditCardData[i][3];
-    totalLimit += creditCardData[i][2];
+    totalBalance += creditCardData[i][4];
+    totalLimit += creditCardData[i][3];
   }
   creditUsage = (totalBalance / totalLimit) * 100;
 
@@ -81,17 +85,17 @@ function getDashboardData() {
   const goalSummary = [];
   if (goalsData.length > 1) {
     goalsData.slice(1).forEach(goal => {
-      const savedAmount = goal[3];
-      const targetAmount = goal[2];
+      const savedAmount = goal[4];
+      const targetAmount = goal[3];
       const progress = (savedAmount / targetAmount) * 100;
       const remaining = targetAmount - savedAmount;
       goalSummary.push({
-        name: goal[0],
+        name: goal[1],
         progress: progress.toFixed(2),
         saved: savedAmount,
         target: targetAmount,
         remaining: remaining,
-        dueDate: Utilities.formatDate(new Date(goal[4]), Session.getScriptTimeZone(), "MMM dd, yyyy")
+        dueDate: Utilities.formatDate(new Date(goal[5]), Session.getScriptTimeZone(), "MMM dd, yyyy")
       });
     });
   }
@@ -129,24 +133,92 @@ function getDashboardData() {
   };
 }
 
-// Function to add a new transaction
+// V2 Functions with Transaction Linking Logic
+
 function addTransaction(formData) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName("Transactions");
-  const rowData = [
+  const transactionSheet = ss.getSheetByName("Transactions");
+  const amount = parseFloat(formData.amount);
+
+  // 1. Add to Transactions Sheet
+  const newRowData = [
+    generateUniqueId(),
     new Date(formData.date),
     formData.type,
     formData.category,
-    parseFloat(formData.amount),
+    amount,
     formData.description,
     formData.paymentMethod,
-    formData.accountName
+    formData.accountName,
+    formData.cardId || null,
+    formData.goalId || null
   ];
-  sheet.appendRow(rowData);
-  return { status: "success", message: "Transaction added successfully!" };
+  transactionSheet.appendRow(newRowData);
+
+  // 2. Update Linked Sheets
+  if (formData.type === 'Expense' && formData.paymentMethod === 'Credit Card' && formData.cardId) {
+    updateCardBalance(formData.cardId, amount);
+  } else if (formData.category === 'Credit Card Payment' && formData.cardId) {
+    updateCardBalance(formData.cardId, -amount, true);
+  } else if (formData.type === 'Savings' && formData.goalId) {
+    updateGoalProgress(formData.goalId, amount);
+  }
+
+  return { status: 'success', message: 'Transaction added and linked successfully!' };
 }
 
-// Function to get all transactions
+function updateTransaction(newFormData) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Transactions");
+  const row = parseInt(newFormData.row);
+  
+  // 1. Get Old Transaction Data to Revert Changes
+  const oldRowData = sheet.getRange(row, 1, 1, 10).getValues()[0];
+  const oldTransaction = {
+    type: oldRowData[2],
+    category: oldRowData[3],
+    amount: parseFloat(oldRowData[4]),
+    paymentMethod: oldRowData[6],
+    cardId: oldRowData[8],
+    goalId: oldRowData[9]
+  };
+
+  // 2. Revert the old transaction's impact
+  if (oldTransaction.type === 'Expense' && oldTransaction.paymentMethod === 'Credit Card' && oldTransaction.cardId) {
+    updateCardBalance(oldTransaction.cardId, -oldTransaction.amount);
+  } else if (oldTransaction.category === 'Credit Card Payment' && oldTransaction.cardId) {
+    updateCardBalance(oldTransaction.cardId, oldTransaction.amount, true, true);
+  } else if (oldTransaction.type === 'Savings' && oldTransaction.goalId) {
+    updateGoalProgress(oldTransaction.goalId, -oldTransaction.amount);
+  }
+
+  // 3. Apply the new transaction's impact
+  const newAmount = parseFloat(newFormData.amount);
+  if (newFormData.type === 'Expense' && newFormData.paymentMethod === 'Credit Card' && newFormData.cardId) {
+    updateCardBalance(newFormData.cardId, newAmount);
+  } else if (newFormData.category === 'Credit Card Payment' && newFormData.cardId) {
+    updateCardBalance(newFormData.cardId, -newAmount, true);
+  } else if (newFormData.type === 'Savings' && newFormData.goalId) {
+    updateGoalProgress(newFormData.goalId, newAmount);
+  }
+  
+  // 4. Update the transaction row in the sheet
+  sheet.getRange(row, 1, 1, 10).setValues([[
+    newFormData.transactionId,
+    new Date(newFormData.date),
+    newFormData.type,
+    newFormData.category,
+    newAmount,
+    newFormData.description,
+    newFormData.paymentMethod,
+    newFormData.accountName,
+    newFormData.cardId,
+    newFormData.goalId
+  ]]);
+
+  return { status: 'success', message: 'Transaction updated successfully!' };
+}
+
 function getTransactions() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName("Transactions");
@@ -155,41 +227,88 @@ function getTransactions() {
   for (let i = 1; i < data.length; i++) {
     transactions.push({
       row: i + 1, // Add row number for editing/deleting
-      date: Utilities.formatDate(new Date(data[i][0]), Session.getScriptTimeZone(), "MMM dd, yyyy"),
-      type: data[i][1],
-      category: data[i][2],
-      amount: data[i][3],
-      description: data[i][4],
-      paymentMethod: data[i][5],
-      accountName: data[i][6]
+      transactionId: data[i][0],
+      date: new Date(data[i][1]),
+      type: data[i][2],
+      category: data[i][3],
+      amount: data[i][4],
+      description: data[i][5],
+      paymentMethod: data[i][6],
+      accountName: data[i][7],
+      cardId: data[i][8],
+      goalId: data[i][9]
     });
   }
   return transactions;
 }
 
-// Function to update a transaction
-function updateTransaction(rowData) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName("Transactions");
-  const row = parseInt(rowData.row);
-  sheet.getRange(row, 1, 1, 7).setValues([[
-    new Date(rowData.date),
-    rowData.type,
-    rowData.category,
-    parseFloat(rowData.amount),
-    rowData.description,
-    rowData.paymentMethod,
-    rowData.accountName
-  ]]);
-  return { status: "success", message: "Transaction updated successfully!" };
-}
-
-// Function to delete a transaction
 function deleteTransaction(row) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName("Transactions");
-  sheet.deleteRow(parseInt(row));
-  return { status: "success", message: "Transaction deleted successfully!" };
+
+  // 1. Get Data to Revert Changes
+  const rowData = sheet.getRange(row, 1, 1, 10).getValues()[0];
+  const transaction = {
+    type: rowData[2],
+    category: rowData[3],
+    amount: parseFloat(rowData[4]),
+    paymentMethod: rowData[6],
+    cardId: rowData[8],
+    goalId: rowData[9]
+  };
+
+  // 2. Revert the transaction's impact
+  if (transaction.type === 'Expense' && transaction.paymentMethod === 'Credit Card' && transaction.cardId) {
+    updateCardBalance(transaction.cardId, -transaction.amount);
+  } else if (transaction.category === 'Credit Card Payment' && transaction.cardId) {
+    updateCardBalance(transaction.cardId, transaction.amount, true, true);
+  } else if (transaction.type === 'Savings' && transaction.goalId) {
+    updateGoalProgress(transaction.goalId, -transaction.amount);
+  }
+
+  // 3. Delete the row
+  sheet.deleteRow(row);
+  return { status: 'success', message: 'Transaction deleted successfully!' };
+}
+
+// Helper function to update card balance
+function updateCardBalance(cardId, amount, isPayment = false, isReversal = false) {
+  const cardSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Credit Cards");
+  const data = cardSheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === cardId) {
+      const currentBalance = data[i][4];
+      const newBalance = currentBalance + amount;
+      cardSheet.getRange(i + 1, 5).setValue(newBalance);
+      
+      if(isPayment) {
+        if (!isReversal) {
+           cardSheet.getRange(i + 1, 6).setValue(Math.abs(amount)); // Last Payment
+           cardSheet.getRange(i + 1, 8).setValue(new Date()); // Last Payment Date
+        } else {
+           // If reversing a payment, clear last payment details. 
+           // A more robust solution might find the *previous* payment.
+           cardSheet.getRange(i + 1, 6).setValue('');
+           cardSheet.getRange(i + 1, 8).setValue('');
+        }
+      }
+      break;
+    }
+  }
+}
+
+// Helper function to update goal progress
+function updateGoalProgress(goalId, amount) {
+  const goalSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Goals");
+  const data = goalSheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === goalId) {
+      const currentSaved = data[i][4];
+      const newSaved = currentSaved + amount;
+      goalSheet.getRange(i + 1, 5).setValue(newSaved);
+      break;
+    }
+  }
 }
 
 // Function to add a credit card
@@ -197,6 +316,7 @@ function addCreditCard(formData) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName("Credit Cards");
   const rowData = [
+    generateUniqueId(),
     formData.cardName,
     formData.bankName,
     parseFloat(formData.limit),
@@ -218,6 +338,7 @@ function editCreditCard(formData) {
   const row = parseInt(formData.row);
   if (row > 0) {
     sheet.getRange(row, 1, 1, sheet.getLastColumn()).setValues([[
+      formData.cardId,
       formData.cardName,
       formData.bankName,
       parseFloat(formData.limit),
@@ -253,11 +374,11 @@ function getCreditCardData() {
   const today = new Date();
   
   for (let i = 1; i < data.length; i++) {
-    const balance = data[i][3];
-    const limit = data[i][2];
+    const balance = data[i][4];
+    const limit = data[i][3];
     const available = limit - balance;
     const utilization = (balance / limit) * 100;
-    const dueDate = new Date(data[i][7]);
+    const dueDate = new Date(data[i][8]);
     const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
     
     let status = "";
@@ -269,11 +390,10 @@ function getCreditCardData() {
       status = "Good";
     }
     
-    // Check if Last Payment and Last Payment Date exist before accessing
-    const lastPayment = data[i][4] || 0;
-    const lastPaymentDate = data[i][6] ? Utilities.formatDate(new Date(data[i][6]), Session.getScriptTimeZone(), "MMM dd, yyyy") : 'N/A';
-    const bankName = data[i][1] || '';
-    const statementDate = data[i][8] ? Utilities.formatDate(new Date(data[i][8]), Session.getScriptTimeZone(), "MMM dd") : 'N/A';
+    const lastPayment = data[i][5] || 0;
+    const lastPaymentDate = data[i][7] ? Utilities.formatDate(new Date(data[i][7]), Session.getScriptTimeZone(), "MMM dd, yyyy") : 'N/A';
+    const bankName = data[i][2] || '';
+    const statementDate = data[i][9] ? Utilities.formatDate(new Date(data[i][9]), Session.getScriptTimeZone(), "MMM dd") : 'N/A';
 
     let insight = "";
     if (daysUntilDue > 0 && daysUntilDue <= 5) {
@@ -287,11 +407,12 @@ function getCreditCardData() {
 
     cards.push({
       row: i + 1,
-      name: data[i][0],
+      cardId: data[i][0],
+      name: data[i][1],
       limit: limit,
       balance: balance,
       available: available,
-      apr: data[i][5],
+      apr: data[i][6],
       dueDate: Utilities.formatDate(dueDate, Session.getScriptTimeZone(), "MMM dd, yyyy"),
       lastPayment: lastPayment,
       lastPaymentDate: lastPaymentDate,
@@ -310,6 +431,7 @@ function addSavingsGoal(formData) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName("Goals");
   const rowData = [
+    generateUniqueId(),
     formData.goalName,
     formData.category,
     parseFloat(formData.targetAmount),
@@ -329,9 +451,9 @@ function getGoalsData() {
   const data = sheet.getDataRange().getValues();
   const goals = [];
   for (let i = 1; i < data.length; i++) {
-    const targetAmount = data[i][2];
-    const savedAmount = data[i][3];
-    const targetDate = new Date(data[i][4]);
+    const targetAmount = data[i][3];
+    const savedAmount = data[i][4];
+    const targetDate = new Date(data[i][5]);
     const today = new Date();
     const remainingDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
     const remainingAmount = targetAmount - savedAmount;
@@ -342,13 +464,14 @@ function getGoalsData() {
     if (progressPercentage >= 100) {
       insight = "✨ Goal achieved! Treat yourself (mindfully).";
     } else if (progressPercentage >= 70) {
-      insight = `🎯 You’re ${progressPercentage.toFixed(0)}% to your ${data[i][0]} fund — only ₱${remainingAmount.toLocaleString()} to go!`;
+      insight = `🎯 You’re ${progressPercentage.toFixed(0)}% to your ${data[i][1]} fund — only ₱${remainingAmount.toLocaleString()} to go!`;
     } else if (monthlySavingsNeeded > 0) {
       insight = `💪 Stay consistent! Saving ₱${(monthlySavingsNeeded / 4).toLocaleString()} more this week gets you back on track.`;
     }
 
     goals.push({
-      name: data[i][0],
+      goalId: data[i][0],
+      name: data[i][1],
       targetAmount: targetAmount,
       savedAmount: savedAmount,
       remainingAmount: remainingAmount,
@@ -357,9 +480,37 @@ function getGoalsData() {
       monthlySavingsNeeded: monthlySavingsNeeded,
       progressPercentage: progressPercentage.toFixed(2),
       status: (remainingDays <= 0 && remainingAmount > 0) ? "Overdue" : "",
-      category: data[i][1],
-      priority: data[i][6],
+      category: data[i][2],
+      priority: data[i][7],
       insight: insight
+    });
+  }
+  return goals;
+}
+
+function getCardsForDropdown() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Credit Cards");
+  const data = sheet.getDataRange().getValues();
+  const cards = [];
+  for (let i = 1; i < data.length; i++) {
+    cards.push({
+      id: data[i][0],
+      name: data[i][1]
+    });
+  }
+  return cards;
+}
+
+function getGoalsForDropdown() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Goals");
+  const data = sheet.getDataRange().getValues();
+  const goals = [];
+  for (let i = 1; i < data.length; i++) {
+    goals.push({
+      id: data[i][0],
+      name: data[i][1]
     });
   }
   return goals;
@@ -370,6 +521,7 @@ function addReminder(formData) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName("Reminders");
   const rowData = [
+    generateUniqueId(),
     formData.description,
     formData.category,
     new Date(formData.dueDate),
@@ -394,10 +546,10 @@ function getRemindersData() {
   today.setHours(0, 0, 0, 0);
 
   for (let i = 1; i < data.length; i++) {
-    const dueDate = new Date(data[i][2]);
+    const dueDate = new Date(data[i][3]);
     dueDate.setHours(0, 0, 0, 0);
     const daysLeft = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
-    const status = data[i][4];
+    const status = data[i][5];
 
     let urgency = 'safe';
     if (daysLeft < 3 || status === 'Overdue') {
@@ -408,25 +560,26 @@ function getRemindersData() {
 
     let feedback = "";
     if (status === 'Paid') {
-      feedback = "✅ You paid your " + data[i][0] + " on time — nice discipline!";
+      feedback = "✅ You paid your " + data[i][1] + " on time — nice discipline!";
     } else if (daysLeft < 0) {
       feedback = "⏰ Overdue! Don’t stress — mark it done once paid.";
     } else if (daysLeft <= 2) {
-      feedback = "📅 " + data[i][0] + " bill due in " + daysLeft + " days — schedule a reminder payment.";
+      feedback = "📅 " + data[i][1] + " bill due in " + daysLeft + " days — schedule a reminder payment.";
     }
 
     reminders.push({
-      description: data[i][0],
+      reminderId: data[i][0],
+      description: data[i][1],
       dueDate: Utilities.formatDate(dueDate, Session.getScriptTimeZone(), "MMM dd, yyyy"),
-      amount: data[i][3],
+      amount: data[i][4],
       status: status,
-      recurring: data[i][5],
+      recurring: data[i][6],
       daysLeft: daysLeft,
       urgency: urgency,
       feedback: feedback,
-      category: data[i][1],
-      autoNotify: data[i][8],
-      paymentChannel: data[i][7]
+      category: data[i][2],
+      autoNotify: data[i][9],
+      paymentChannel: data[i][8]
     });
   }
   return reminders;
@@ -440,10 +593,10 @@ function updateDaysLeft() {
   today.setHours(0, 0, 0, 0);
 
   for (let i = 1; i < data.length; i++) {
-    const dueDate = new Date(data[i][2]);
+    const dueDate = new Date(data[i][3]);
     dueDate.setHours(0, 0, 0, 0);
     const daysLeft = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
-    sheet.getRange(i + 1, 7).setValue(daysLeft);
+    sheet.getRange(i + 1, 8).setValue(daysLeft);
   }
 }
 
