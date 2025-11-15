@@ -1186,24 +1186,30 @@
     form.onsubmit = null; // Clear previous submit handler
 
     modalTitle.innerText = 'Edit Transaction';
+    // Use the same dynamic form structure as the "Add Transaction" modal
     form.innerHTML = `
       <input type="hidden" name="row" value="${transaction.row}">
+      <input type="hidden" name="id" value="${transaction.transactionId}">
       <div class="form-grid">
         <div class="form-group">
           <label for="transaction-type">Transaction Type *</label>
-          <select id="transaction-type" name="type" required>
-            <option value="Income">Income</option>
-            <option value="Expense">Expense</option>
-            <option value="Savings">Savings</option>
-          </select>
+          <select id="transaction-type" name="type" required></select>
         </div>
         <div class="form-group">
           <label for="transaction-payment-method">Payment Method</label>
-          <input type="text" id="transaction-payment-method" name="paymentMethod" placeholder="e.g., Credit Card, GCash">
+          <select id="transaction-payment-method" name="paymentMethod"></select>
         </div>
         <div class="form-group">
           <label for="transaction-account-name">Account Name</label>
-          <input type="text" id="transaction-account-name" name="accountName" placeholder="e.g., BPI, Personal Wallet">
+          <select id="transaction-account-name" name="accountName"></select>
+        </div>
+        <div class="form-group" id="card-selection-container" style="display: none;">
+          <label for="transaction-card">Credit Card</label>
+          <select id="transaction-card" name="cardId"></select>
+        </div>
+        <div class="form-group" id="goal-selection-container" style="display: none;">
+          <label for="transaction-goal">Savings Goal</label>
+          <select id="transaction-goal" name="goalId"></select>
         </div>
         <div class="form-group">
           <label for="transaction-category">Category *</label>
@@ -1229,17 +1235,65 @@
       </div>
     `;
 
-    // Pre-fill form
+    // --- Populate dropdowns ---
+    populateSelectWithOptions('transaction-type', referenceData['TRANSACTION TYPE']);
+    populateSelectWithOptions('transaction-payment-method', referenceData['PAYMENT METHOD']);
+    populateSelectWithOptions('transaction-account-name', referenceData['ACCOUNT NAME']);
+    
+    // --- Pre-fill form data ---
     document.querySelector('#modal-form [name="type"]').value = transaction.type;
-    updateCategoryOptions(); // Update categories based on type
+    updateCategoryOptions(); // IMPORTANT: Update categories based on type *before* setting the value
     document.querySelector('#modal-form [name="category"]').value = transaction.category;
+    document.querySelector('#modal-form [name="paymentMethod"]').value = transaction.paymentMethod || '';
+    document.querySelector('#modal-form [name="accountName"]').value = transaction.accountName || '';
     document.querySelector('#modal-form [name="amount"]').value = transaction.amount;
     document.querySelector('#modal-form [name="date"]').valueAsDate = new Date(transaction.date);
     document.querySelector('#modal-form [name="description"]').value = transaction.description;
-    document.querySelector('#modal-form [name="paymentMethod"]').value = transaction.paymentMethod || '';
-    document.querySelector('#modal-form [name="accountName"]').value = transaction.accountName || '';
 
-    document.getElementById('transaction-type').addEventListener('change', updateCategoryOptions);
+    // --- Event listeners for dynamic fields ---
+    const typeSelect = document.getElementById('transaction-type');
+    const categorySelect = document.getElementById('transaction-category');
+    const paymentMethodInput = document.getElementById('transaction-payment-method');
+    const cardContainer = document.getElementById('card-selection-container');
+    const goalContainer = document.getElementById('goal-selection-container');
+
+    const updateDynamicFields = () => {
+      // Show/Hide Goal Selection
+      if (typeSelect.value === 'Savings') {
+        goalContainer.style.display = 'block';
+        google.script.run.withSuccessHandler(goals => {
+          populateGoalOptions(goals);
+          if (transaction.goalId) {
+            document.getElementById('transaction-goal').value = transaction.goalId;
+          }
+        }).getGoalsForDropdown();
+      } else {
+        goalContainer.style.display = 'none';
+      }
+      
+      // Show/Hide Card Selection
+      if (categorySelect.value === 'Credit Card Payment' || paymentMethodInput.value.toLowerCase() === 'credit card') {
+        cardContainer.style.display = 'block';
+        google.script.run.withSuccessHandler(cards => {
+          populateCardOptions(cards);
+          if (transaction.cardId) {
+            document.getElementById('transaction-card').value = transaction.cardId;
+          }
+        }).getCardsForDropdown();
+      } else {
+        cardContainer.style.display = 'none';
+      }
+    };
+    
+    typeSelect.addEventListener('change', () => {
+      updateCategoryOptions();
+      updateDynamicFields();
+    });
+    categorySelect.addEventListener('change', updateDynamicFields);
+    paymentMethodInput.addEventListener('change', updateDynamicFields);
+
+    // Initial check to show/hide fields when the form loads
+    updateDynamicFields();
 
     form.onsubmit = (e) => {
       e.preventDefault();
@@ -1406,13 +1460,14 @@
     transactionList.innerHTML = '';
     transactions.forEach((tx, idx) => {
       let icon, typeClass;
-      if (tx.type === "Income") {
+      const txTypeLower = tx.type.toLowerCase();
+      if (txTypeLower === "income") {
         icon = '<i class="fas fa-arrow-down tx-type-income"></i>';
         typeClass = 'tx-type-income';
-      } else if (tx.type === "Expense") {
+      } else if (txTypeLower === "expense") {
         icon = '<i class="fas fa-arrow-up tx-type-expense"></i>';
         typeClass = 'tx-type-expense';
-      } else if (tx.type === "Savings") {
+      } else if (txTypeLower === "savings") {
         icon = '<i class="fas fa-piggy-bank tx-type-savings"></i>';
         typeClass = 'tx-type-savings';
       } else {
@@ -1422,7 +1477,9 @@
       const txElem = document.createElement('div');
       txElem.className = 'modern-card';
       const badgeHTML = getBadge(tx);
-      const formattedDate = new Date(tx.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const utcDate = new Date(tx.date);
+      const formattedDate = new Date(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate())
+        .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       txElem.innerHTML = `
         <div class="modern-card-header">
           ${icon}<span>${tx.type} - ${tx.category}</span>
@@ -1443,9 +1500,10 @@
 
   function getBadge(tx) {
     let badge = '';
-    if (tx.type === 'Savings' && tx.amount > 0) {
+    const txTypeLower = tx.type.toLowerCase();
+    if (txTypeLower === 'savings' && tx.amount > 0) {
       badge = `✨ Great — you saved ₱${tx.amount.toLocaleString(undefined, {minimumFractionDigits: 2})} today!`;
-    } else if (tx.type === 'Expense') {
+    } else if (txTypeLower === 'expense') {
       badge = `🧾 Expense logged. Keep tracking to stay mindful!`;
     }
     if (badge) {
